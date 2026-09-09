@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Conquer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="menu" class="screen active">
+            <h1 class="logo">ANIME <span>CONQUER</span></h1>
+            <div class="menu-buttons">
+                <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<button class="glow-button" onclick="createOnlineGame()">CREATE ONLINE ROOM</button>
+<div class="join-area">
+    <input type="text" id="join-code" placeholder="ENTER CODE">
+    <button class="glow-button" onclick="joinOnlineGame(document.getElementById('join-code').value.trim().toUpperCase())">JOIN ROOM</button>
+</div>
+                <button class="glow-button" onclick="showSetup()">LOCAL MULTIPLAYER</button>
+                <button class="glow-button" onclick="showRules()" style="background:#1a1a2e;border:1px solid #4d79ff;">HOW TO PLAY</button>
+            </div>
+        </div>
+        <div id="setup" class="screen">
+            <h2>WAR ROOM</h2>
+            <div class="setup-box">
+                <label for="verse-select">SELECT UNIVERSE</label>
+                <select id="verse-select" onchange="updateVersePreview(this.value)">
+                    <option value="Naruto">Naruto Shippuden</option>
+                    <option value="OnePiece">One Piece</option>
+                    <option value="Bleach">Bleach</option>
+                    <option value="JJK">Jujutsu Kaisen</option>
+                    <option value="DemonSlayer">Demon Slayer</option>
+                    <option value="MHA">My Hero Academia</option>
+                    <option value="HxH">Hunter x Hunter</option>
+                    <option value="FireForce">Fire Force</option>
+                </select>
+                <div id="verse-preview-wrap" style="
+                    width:100%; height:140px; border-radius:10px; overflow:hidden;
+                    position:relative; background:#0a0a0a; border:1px solid #222;
+                    margin-top:2px; flex-shrink:0;
+                ">
+                    <img id="verse-preview-img" src="verses/naruto.jpg" alt=""
+                        style="width:100%;height:100%;object-fit:cover;object-position:center top;display:block;transition:opacity 0.3s;">
+                    <div id="verse-preview-label" style="
+                        position:absolute;bottom:0;left:0;right:0;
+                        background:linear-gradient(transparent,rgba(0,0,0,0.85));
+                        color:white;font-size:13px;font-weight:900;letter-spacing:3px;
+                        padding:14px 12px 8px; text-transform:uppercase;
+                    ">Naruto Shippuden</div>
+                </div>
+
+                <label for="game-mode-select">GAME MODE</label>
+                <select id="game-mode-select">
+                    <option value="conquest">⚔️ CONQUEST — Eliminate all opponents</option>
+                    <option value="showdown">🏆 SHOWDOWN — Collect then battle all-v-all</option>
+                    <option value="ability">⚡ ABILITY MODE — Every character has a unique power</option>
+                </select>
+
+                <label for="player-count">PLAYER COUNT</label>
+                <select id="player-count" onchange="generateNameInputs()">
+                    <option value="2">2 Players</option>
+                    <option value="3">3 Players</option>
+                    <option value="4">4 Players</option>
+                </select>
+                <div id="name-inputs"></div>
+                <button class="start-button" onclick="initGame()">BEGIN CONQUEST</button>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div class="game-corner-buttons">
+                <button class="corner-btn" onclick="confirmBackToMenu()">⬅ MENU</button>
+                <button class="corner-btn" onclick="confirmChangeVerse()">🔀 CHANGE VERSE</button>
+            </div>
+            <div class="game-header">
+                <div id="turn-indicator"><span id="current-player-name">---</span>'S TURN</div>
+            </div>
+            <div class="main-layout">
+                <div class="board-column">
+                    <div id="board"></div>
+                    <div id="ap-reference">
+                        <span class="ap-ref-title">AP COSTS</span>
+                        <div class="ap-ref-row"><span class="ap-pip">●</span> Place unit</div>
+                        <div class="ap-ref-row"><span class="ap-pip">●●</span> Attack</div>
+                        <div class="ap-ref-row"><span class="ap-pip">●●</span> Trade</div>
+                        <div class="ap-ref-row"><span class="ap-pip">●</span> Awaken / Evolve</div>
+                        <div class="ap-ref-row"><span class="ap-pip">●</span> Move</div>
+                    </div>
+                    <div id="trade-guide-panel"></div>
+                </div>
+                <div class="ui-panel">
+                    <h3>HAND</h3>
+                    <div id="hand-display"></div>
+                    <button id="trade-btn" onclick="handleTrade()" disabled>TRADE 5 FOR LEGENDARY</button>
+                    <div id="ability-container"></div>
+                    <h3 style="margin:15px 0 8px 0; font-size:13px; color:#888;">BATTLE LOG</h3>
+                    <div id="move-log" style="overflow-y:auto; flex-grow:1; max-height:180px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="battle-modal" class="modal">
+        <div class="modal-content">
+            <div class="versus-container">
+                <div id="atk-card"></div>
+                <div class="vs-divider">VS</div>
+                <div id="def-card"></div>
+            </div>
+            <div id="special-modal-controls"></div>
+            <div class="modal-controls">
+                <button class="win-btn atk-btn" onclick="resolveManual(true)">ATTACKER WINS</button>
+                <button class="win-btn def-btn" onclick="resolveManual(false)">DEFENDER WINS</button>
+            </div>
+        </div>
+    </div>
+    <div id="rules-screen" class="screen" style="overflow-y:auto; padding:40px 20px;">
+        <div style="max-width:700px; width:100%;">
+            <h1 style="color:#4d79ff; letter-spacing:4px; margin-bottom:4px;">HOW TO PLAY</h1>
+            <h3 style="color:#666; margin-bottom:30px; font-weight:normal;">ANIME CONQUER</h3>
+            <div class="rules-section">
+                <h2>🎯 OBJECTIVE</h2>
+                <p>Eliminate all other players by destroying every unit in their hand and on the board. Last player standing wins.</p>
+            </div>
+            <div class="rules-section">
+                <h2>🗺️ THE BOARD</h2>
+                <p>The game is played on a 6×6 grid. Each player starts in a corner (their base). Neutral tiles scale in strength toward the centre:</p>
+                <ul>
+                    <li><b>Outer ring</b> — Common &amp; Rare (tiles bordering the middle ring lean Rare)</li>
+                    <li><b>Middle ring</b> — Epic &amp; Mythic (tiles closest to centre lean Mythic)</li>
+                    <li><b>Centre 4 tiles</b> — Legendary</li>
+                </ul>
+                <p style="color:#aaa;font-size:13px;">💡 The board is reshuffled every game — same zones, different characters every time.</p>
+            </div>
+            <div class="rules-section">
+                <h2>🃏 YOUR HAND</h2>
+                <p>You start with 3 cards. If all your cards (hand + board) are gone, you are eliminated.</p>
+            </div>
+            <div class="rules-section">
+                <h2>⚡ YOUR TURN — 3 ACTION POINTS</h2>
+                <p>Each turn you have <b>3 AP</b> (shown as glowing dots above the board). Spend them how you like:</p>
+                <ul>
+                    <li><b>Place a card</b> — 2 AP · Deploy from hand to your base or owned tile</li>
+                    <li><b>Move a unit</b> — 1 AP · Slide a board unit to an adjacent empty tile</li>
+                    <li><b>Attack</b> — 2 AP · Send a unit against an adjacent enemy</li>
+                    <li><b>Trade</b> — 2 AP · Select cards (yellow glow), click TRADE for a rarer card</li>
+                    <li><b>Awaken / Evolve</b> — 1 AP · Evolve a unit marked with ⚡</li>
+                </ul>
+                <p style="color:#4dff88;font-size:13px;">💡 Example: Move + Move + Move (3×1 AP) OR Place + Move (2+1 AP) in one turn. Click END TURN to skip remaining AP.</p>
+            </div>
+            <div class="rules-section">
+                <h2>⚔️ BATTLE</h2>
+                <p>Both units appear in a battle modal. Players decide the winner — the loser is removed. Attacking a neutral unit claims it for your team.</p>
+            </div>
+            <div class="rules-section">
+                <h2>💱 TRADING</h2>
+                <ul>
+                    <li><b>5 cards</b> → Legendary</li>
+                    <li><b>Naruto / MHA Ultra</b>: 4+1 leg, 2+2 leg, or 3 leg → Ultra</li>
+                    <li><b>Demon Slayer Ultra</b>: 3 legendary → Ultra</li>
+                    <li><b>One Piece Ultra</b>: 2 legendaries or 5 mythics → Ultra</li>
+                    <li><b>One Piece GOD</b>: 1 ultra + 3 legendaries + 1 any → God Tier</li>
+                </ul>
+                <p style="color:#aaa;font-size:13px;">💡 The Trade Guide next to the board shows live pool counts during the game.</p>
+            </div>
+            <div class="rules-section">
+                <h2>✨ AWAKENING</h2>
+                <p>Some units can evolve into stronger forms. Select a unit marked with <b>⚡</b> on the board or in your hand, then click the evolve button that appears. Choose the required sacrifice cards from your hand and confirm.</p>
+                <ul>
+                    <li><b>Naruto</b> — Button says <b>AWAKEN</b>. Shouts <i>"SHINRA TENSEI!"</i> on activation. Chains include: Naruto (Base → Sage → KCM → Six Paths), Sasuke, Madara, Kakashi, Guy, Obito, Minato, Hashirama.</li>
+                    <li><b>One Piece</b> — Button says <b>AWAKEN</b>. Shouts <i>"AWAKENING!"</i>. Chains include: Luffy (5 forms up to Gear 5), Kaido, Big Mom, Blackbeard, Zoro, Sanji, Law, Kid, Katakuri, Sabo, Robin, Doflamingo, and more.</li>
+                    <li><b>Bleach</b> — Button says <b>BANKAI</b>. Shouts <i>"BANKAI!"</i>. Chains include: Ichigo (Shikai → Bankai → Hollow Mask → True Bankai), Byakuya, Zaraki, Urahara, Unohana, Yoruichi, Rukia, Hitsugaya, Grimmjow, Ulquiorra (Segunda Etapa), Aizen, Yhwach, Yamamoto, and more.</li>
+                    <li><b>MHA</b> — Button says <b>AWAKEN</b>. Chains include Plus Ultra evolutions for key heroes.</li>
+                </ul>
+                <p style="color:#4dff88;font-size:13px;">💡 In 2-player games only base forms spawn — evolve them yourself for maximum power.</p>
+            </div>
+            <div class="rules-section">
+                <h2>🏆 SHOWDOWN MODE</h2>
+                <p>Choose <b>Showdown</b> in the game mode selector before starting. The game plays like Conquest — but instead of eliminating each other, players race to claim neutral tiles. Once all neutral tiles on the board are owned by a player, a <b>3-turn countdown</b> begins. After those 3 turns, the <b>SHOWDOWN</b> triggers automatically:</p>
+                <ul>
+                    <li>Every player's board units are displayed in their column</li>
+                    <li>All units fight simultaneously — all vs all</li>
+                    <li>Players look at the rosters and <b>declare the winner</b> based on combined strength</li>
+                    <li>Only units <b>on the board</b> count — hand cards do not fight in the showdown</li>
+                </ul>
+                <p style="color:#aaa;font-size:13px;">💡 Strategy: prioritize claiming tiles over attacking opponents. Stronger tiles = stronger showdown roster.</p>
+            </div>
+            <div class="rules-section">
+                <h2>💡 TIPS</h2>
+                <ul>
+                    <li>Hover cards or tiles to see a large preview</li>
+                    <li>Control the center — legendary tiles are the biggest power spikes</li>
+                    <li>A full hand = more trading power, don't neglect drawing</li>
+                    <li>Awaken at the front line for maximum pressure</li>
+                </ul>
+            </div>
+            <button class="glow-button" onclick="hideRules()" style="margin-top:20px;">← BACK TO MENU</button>
+        </div>
+    </div>
+<div id="win-screen" class="screen">
+        <div class="win-content">
+            <h1 id="winner-text">PLAYER 1 WINS!</h1>
+            <div class="win-buttons">
+                <button class="glow-button" onclick="restartGame()">PLAY AGAIN</button>
+                <button class="glow-button" onclick="backToMenu()">BACK TO MENU</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

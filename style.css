@@ -1,0 +1,560 @@
+/* --- Global Styles --- */
+body { margin: 0; background: #050505; color: white; font-family: sans-serif; overflow-y: auto; }
+.screen { display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; }
+.active{ display: flex; }
+
+/* --- Main Menu & Setup --- */
+.logo { font-size: 3rem; letter-spacing: 5px; margin-bottom: 2rem; }
+.logo span { color: #4d79ff; text-shadow: 0 0 15px #4d79ff; }
+.setup-box { background: #111; padding: 30px; border-radius: 15px; border: 1px solid #333; display: flex; flex-direction: column; gap: 15px; min-width: 300px; max-width: 380px; width: 100%; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+.start-button { padding: 15px; background: #4d79ff; color: white; font-weight: 900; font-size: 15px; letter-spacing: 3px; border-radius: 8px; border: none; cursor: pointer; text-transform: uppercase; transition: all 0.2s; box-shadow: 0 0 20px #4d79ff55; margin-top: 4px; }
+.start-button:hover { background: #6690ff; box-shadow: 0 0 30px #4d79ff99; transform: scale(1.02); }
+label { font-size: 12px; color: #888; font-weight: bold; }
+.setup-input, select { padding: 10px; background: #222; border: 1px solid #444; color: white; border-radius: 5px; }
+#name-inputs { display: flex; flex-direction: column; gap: 10px; }
+
+/* --- Board & Tiles --- */
+#board { display: grid; grid-template-columns: repeat(6, 85px); grid-template-rows: repeat(6, 85px); gap: 5px; background: #1a1a1a; padding: 15px; border-radius: 10px; border: 2px solid #333; }
+.tile { width: 85px; height: 85px; background: #000; position: relative; cursor: pointer; border: 2px solid transparent; overflow: hidden; }
+.tile img { width: 100%; height: 100%; object-fit: cover; object-position: center top; }
+.unit-info { position: absolute; bottom: 0; width: 100%; background: rgba(0, 0, 0, 0.75); color: white; font-size: 9px; text-align: center; padding: 2px 0; font-weight: bold; pointer-events: none; text-transform: uppercase; }
+
+/* Owner Colors */
+.tile.red { border-color: #ff4d4d; box-shadow: inset 0 0 10px #ff4d4d; }
+.tile.blue { border-color: #4d79ff; box-shadow: inset 0 0 10px #4d79ff; }
+.tile.green { border-color: #4dff88; box-shadow: inset 0 0 10px #4dff88; }
+.tile.yellow { border-color: #ffff4d; box-shadow: inset 0 0 10px #ffff4d; }
+.selected { border: 2px solid white !important; z-index: 5; transform: scale(0.98); }
+
+/* Hanami Roots Glow */
+.rooted-tile { box-shadow: inset 0 0 20px #2ecc71, 0 0 15px #2ecc71 !important; border: 2px solid #2ecc71 !important; }
+
+/* ADDED: Mythic Roots Glow - for future compatibility with ability logic */
+.rooted-mythic-tile { box-shadow: inset 0 0 20px #e74c3c, 0 0 15px #e74c3c !important; border: 2px solid #e74c3c !important; }
+
+
+/* --- UI Layout --- */
+.main-layout { display: flex; gap: 30px; padding: 20px; align-items: flex-start; }
+.ui-panel { width: 320px; background: #0a0a0a; padding: 20px; border-radius: 12px; border: 1px solid #333; min-height: 400px; max-height: 90vh; display: flex; flex-direction: column; }
+#hand-display { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; overflow-y: auto; flex-grow: 1; }
+.hand-card { width: 90px; height: 130px; border-radius: 8px; cursor: pointer; border: 1px solid #444; overflow: hidden; position: relative; background: #000; }
+.hand-card img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; }
+.hand-name-tag { position: absolute; bottom: 0; width: 100%; background: rgba(0, 0, 0, 0.85); color: white; font-size: 10px; text-align: center; padding: 4px 0; }
+.hand-card.selected-for-trade { border: 3px solid #ffcc00 !important; box-shadow: 0 0 15px #ffcc00; transform: translateY(-10px); }
+
+/* --- Battle Modal --- */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.96); justify-content: center; align-items: center; z-index: 1000; }
+.modal-content { background: #000; padding: 40px; border-radius: 20px; border: 2px solid #444; text-align: center; }
+.versus-container { display: flex; align-items: center; justify-content: center; gap: 30px; margin-bottom: 30px; }
+.vs-divider { font-size: 70px; font-weight: 900; font-style: italic; text-shadow: 0 0 10px #ff4d4d; }
+
+/* ENORMOUS IMAGE FIX */
+.force-battle-img { width: 150px !important; height: 210px !important; object-fit: cover; border: 5px solid white !important; border-radius: 10px; }
+
+/* --- Buttons --- */
+button { border: none; cursor: pointer; transition: 0.3s; }
+.glow-button { padding: 15px 35px; background: #4d79ff; color: white; font-weight: bold; border-radius: 5px; }
+#trade-btn { padding: 12px; background: #8e44ad; color: white; font-weight: bold; border-radius: 5px; margin-top: 10px; }
+.win-btn { padding: 15px 30px; font-weight: bold; border-radius: 5px; margin: 0 10px; color: white; }
+.atk-btn { background: #4d79ff; }
+.def-btn { background: #ff4d4d; }
+.versus-container {
+    flex-wrap: wrap; /* Allows 3v1 or 4v1 to wrap to a second line if the screen is small */
+    max-width: 90vw;
+}
+
+.battle-unit-wrapper {
+    margin: 5px;
+}
+
+.squad-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 400px; /* Adjust based on your screen size */
+}
+
+.squad-member {
+    text-align: center;
+}
+
+.squad-member p {
+    margin-top: 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.vs-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.match-status-tag {
+    background: #4d79ff;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 8px;
+    font-size: 22px;
+    margin-top: 15px;
+    box-shadow: 0 0 15px rgba(77, 121, 255, 0.6);
+}
+
+#win-screen {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 2000;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#win-screen.active {
+    display: flex; /* Show when active */
+}
+
+#winner-text {
+    font-size: 5rem;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 20px currentColor;
+    font-family: 'Arial Black', sans-serif;
+}
+
+.win-buttons {
+    display: flex;
+    gap: 20px;
+}
+
+/* --- Valid Move Highlights --- */
+.tile.valid-move {
+    border-color: #4dff88 !important;
+    box-shadow: inset 0 0 12px #4dff88, 0 0 8px #4dff88 !important;
+    animation: pulse-green 1.2s infinite;
+}
+.tile.attack-move {
+    border-color: #ff4d4d !important;
+    box-shadow: inset 0 0 12px #ff4d4d, 0 0 10px #ff4d4d !important;
+    animation: pulse-red 1.2s infinite;
+}
+@keyframes pulse-green {
+    0%, 100% { box-shadow: inset 0 0 12px #4dff88, 0 0 8px #4dff88; }
+    50% { box-shadow: inset 0 0 20px #4dff88, 0 0 16px #4dff88; }
+}
+@keyframes pulse-red {
+    0%, 100% { box-shadow: inset 0 0 12px #ff4d4d, 0 0 10px #ff4d4d; }
+    50% { box-shadow: inset 0 0 22px #ff4d4d, 0 0 18px #ff4d4d; }
+}
+
+/* --- Card Preview Tooltip --- */
+#card-preview {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    background: #111;
+    border: 2px solid #444;
+    border-radius: 12px;
+    padding: 10px;
+    pointer-events: none;
+    box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    color: white;
+    font-family: sans-serif;
+}
+
+/* --- Move Log --- */
+#move-log {
+    overflow-y: auto;
+    flex-grow: 1;
+    max-height: 180px;
+    padding-right: 4px;
+}
+#move-log::-webkit-scrollbar { width: 4px; }
+#move-log::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+/* --- Rules Screen --- */
+#rules-screen {
+    display: none;
+    overflow-y: auto;
+    justify-content: flex-start !important;
+    align-items: center;
+    padding: 40px 20px;
+}
+#rules-screen.active { display: flex; }
+
+.rules-section {
+    background: #0d0d0d;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 16px;
+}
+.rules-section h2 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #4d79ff;
+}
+.rules-section p, .rules-section li {
+    color: #bbb;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 4px 0;
+}
+.rules-section ul {
+    padding-left: 18px;
+    margin: 8px 0 0 0;
+}
+
+/* --- Visual Effects Overlay --- */
+.effect-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    pointer-events: none;
+    animation: effect-fade 1.2s ease-out forwards;
+}
+.effect-inner {
+    text-align: center;
+    animation: effect-scale 1.2s ease-out forwards;
+}
+.effect-emoji {
+    font-size: 80px;
+    display: block;
+    filter: drop-shadow(0 0 20px currentColor);
+}
+.effect-title {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    font-family: 'Arial Black', sans-serif;
+    margin-top: 10px;
+}
+.effect-subtitle {
+    font-size: 22px;
+    letter-spacing: 4px;
+    margin-top: 6px;
+    opacity: 0.8;
+}
+@keyframes effect-fade {
+    0%   { opacity: 0; }
+    15%  { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+@keyframes effect-scale {
+    0%   { transform: scale(0.4); }
+    20%  { transform: scale(1.08); }
+    40%  { transform: scale(0.97); }
+    60%  { transform: scale(1.0); }
+    100% { transform: scale(1.15); }
+}
+
+/* Per-effect colours */
+.effect-awaken    { background: radial-gradient(ellipse at center, rgba(90,0,180,0.7) 0%, rgba(0,0,0,0.85) 70%); color: #bf80ff; }
+.effect-legendary { background: radial-gradient(ellipse at center, rgba(180,130,0,0.7) 0%, rgba(0,0,0,0.85) 70%); color: #ffd700; }
+.effect-ultra     { background: radial-gradient(ellipse at center, rgba(200,0,0,0.7) 0%, rgba(0,0,0,0.9) 70%);   color: #ff4444; }
+.effect-attack    { background: radial-gradient(ellipse at center, rgba(0,60,200,0.6) 0%, rgba(0,0,0,0.75) 70%); color: #4d79ff; }
+.effect-defend    { background: radial-gradient(ellipse at center, rgba(0,150,60,0.6) 0%, rgba(0,0,0,0.75) 70%); color: #4dff88; }
+
+/* --- Card Ability Badge --- */
+.card-tip-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0,0,0,0.75);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+/* --- In-Game Corner Buttons --- */
+.game-corner-buttons {
+    position: absolute;
+    top: 12px;
+    right: 15px;
+    display: flex;
+    gap: 10px;
+    z-index: 100;
+}
+.corner-btn {
+    padding: 8px 16px;
+    background: rgba(0,0,0,0.7);
+    color: #aaa;
+    border: 1px solid #333;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+.corner-btn:hover {
+    background: rgba(77,121,255,0.2);
+    border-color: #4d79ff;
+    color: white;
+}
+
+/* Make game-screen position:relative so corner buttons anchor correctly */
+#game-screen { position: relative; justify-content: flex-start; padding-top: 20px; padding-bottom: 40px; }
+
+/* --- Turn Notification Banner --- */
+#turn-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: rgba(0,0,0,0.92);
+    border: 2px solid #333;
+    border-radius: 14px;
+    padding: 18px 45px;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    font-family: 'Arial Black', sans-serif;
+    color: white;
+    z-index: 9998;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+}
+#turn-notification.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+/* --- God Tier Effect Color --- */
+.effect-god { background: radial-gradient(ellipse at center, rgba(255,180,0,0.8) 0%, rgba(0,0,0,0.92) 70%); color: #ffd700; }
+.effect-showdown { background: radial-gradient(ellipse at center, rgba(180,0,0,0.85) 0%, rgba(0,0,0,0.95) 70%); color: #ff4d4d; }
+
+/* --- Showdown Screen --- */
+.showdown-screen {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.97);
+    z-index: 5000;
+    flex-direction: column;
+    align-items: center;
+    overflow-y: auto;
+    padding: 30px 20px;
+    box-sizing: border-box;
+}
+.showdown-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+.showdown-title {
+    font-size: 3rem;
+    font-weight: 900;
+    letter-spacing: 8px;
+    color: #ff4d4d;
+    text-shadow: 0 0 30px #ff4d4d;
+    font-family: 'Arial Black', sans-serif;
+    animation: pulse-red 1.5s infinite;
+}
+.showdown-subtitle {
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: #888;
+    margin-top: 8px;
+}
+.showdown-arena {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 1200px;
+}
+.showdown-player-col {
+    background: #0a0a0a;
+    border: 2px solid;
+    border-radius: 14px;
+    padding: 20px;
+    min-width: 200px;
+    max-width: 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+.showdown-player-name {
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 3px;
+}
+.showdown-unit-count {
+    font-size: 12px;
+    color: #666;
+    letter-spacing: 2px;
+}
+.showdown-units {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    overflow-y: auto;
+    max-height: 340px;
+}
+.showdown-unit {
+    text-align: center;
+    width: 70px;
+}
+.showdown-unit-img {
+    width: 68px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #333;
+    display: block;
+}
+.showdown-unit-name {
+    font-size: 9px;
+    color: #aaa;
+    margin-top: 3px;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+.showdown-win-btn {
+    width: 100%;
+    padding: 12px;
+    color: white;
+    font-weight: 900;
+    font-size: 13px;
+    letter-spacing: 2px;
+    border-radius: 8px;
+    margin-top: 10px;
+    opacity: 0.9;
+    transition: opacity 0.2s, transform 0.2s;
+}
+.showdown-win-btn:hover {
+    opacity: 1;
+    transform: scale(1.03);
+}
+.showdown-footer {
+    text-align: center;
+    margin-top: 24px;
+    color: #666;
+    font-size: 13px;
+}
+.board-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+}
+/* --- Trade Guide Panel --- */
+#trade-guide-panel {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 12px 14px;
+    width: calc(6 * 85px + 5 * 5px + 30px - 28px); /* match board width */
+    box-sizing: border-box;
+    font-family: sans-serif;
+}
+/* --- AP Bar --- */
+#ap-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    margin: 4px 0 0 0;
+}
+
+#end-turn-btn {
+    margin-top: 6px;
+    padding: 5px 16px;
+    background: transparent;
+    color: #444;
+    border: 1px solid #2a2a2a;
+    border-radius: 5px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: block;
+    text-align: center;
+}
+#end-turn-btn:hover {
+    color: #aaa;
+    border-color: #555;
+}
+
+/* --- AP Reference Panel --- */
+#ap-reference {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: #0a0a0a;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 8px 14px;
+    width: calc(6 * 85px + 5 * 5px + 30px - 28px);
+    box-sizing: border-box;
+}
+.ap-ref-title {
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #444;
+    margin-right: 4px;
+}
+.ap-ref-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #555;
+    white-space: nowrap;
+}
+.ap-pip {
+    color: #4d79ff;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-shadow: 0 0 6px #4d79ff;
+}
+
+/* --- Ability Mode ---  */
+.ability-mode-badge {
+    display: inline-block;
+    background: rgba(77,255,136,0.15);
+    border: 1px solid #4dff88;
+    color: #4dff88;
+    font-size: 10px;
+    letter-spacing: 2px;
+    font-weight: bold;
+    padding: 2px 10px;
+    border-radius: 20px;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+/* Frozen tile overlay handled inline; just ensure tiles clip */
+.tile { overflow: hidden; }
+
+/* Ability panel inside ui-panel */
+#ability-container {
+    margin-top: 6px;
+}
