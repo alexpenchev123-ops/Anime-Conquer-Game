@@ -57,7 +57,7 @@ const animeDB = {
             { name: "Genma", img: "naruto2/genma.jpg" }, { name: "Torune", img: "naruto2/torume.jpg" },
             { name: "Foo", img: "naruto2/fu.jpg" }, { name: "Dosu Kinuta", img: "naruto2/dosu.jpg" },
             { name: "Mizuki", img: "naruto2/mizuki.jpg" }, { name: "Dan Kato", img: "naruto2/dan.jpg" },
-            { name: "Tayuya", img: "naruto2/tayuya.jpg" }, { name: "Karui", img: "naruto2/karui.jpg" },
+            { name: "Tayuya", img: "naruto2/Tayuya.jpg" }, { name: "Karui", img: "naruto2/karui.jpg" },
             { name: "Shikaku", img: "naruto2/shikaku.jpg" }, { name: "Sakon/Ukon", img: "naruto2/akon and ukon.jpg" },
             { name: "Kidomaru", img: "naruto2/kidomaru.jpg" }, { name: "Jirobo", img: "naruto2/jirobo.jpg" },
             { name: "Omoi", img: "naruto2/omoi.jpg" }, { name: "Kimmimaro", img: "naruto2/kimmimaro.jpg" },
@@ -1307,9 +1307,7 @@ function joinOnlineGame() {
 
 function handleIncomingData(data) {
     if (data.type === 'START_GAME') {
-        // Restore functions lost in JSON serialisation
         game = data.gameState;
-        // Switch to game screen
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('game-screen').classList.add('active');
         selectedVerse = data.verse;
@@ -1319,12 +1317,147 @@ function handleIncomingData(data) {
         game = data.gameState;
         render();
     }
+    if (data.type === 'VOTE_REQUEST') {
+        // Other player wants to go to menu or change verse
+        showVotePanel(data.action, data.requester, false);
+    }
+    if (data.type === 'VOTE_RESPONSE') {
+        handleVoteResponse(data.vote, data.voter);
+    }
+    if (data.type === 'VOTE_RESULT') {
+        if (data.approved) {
+            closeVotePanel();
+            if (data.action === 'menu') backToMenu();
+            else if (data.action === 'verse') { backToMenu(); setTimeout(() => showSetup(), 50); }
+        } else {
+            closeVotePanel();
+            showApToast('VOTE REJECTED — GAME CONTINUES');
+        }
+    }
 }
 
 function syncGameToGuest() {
     if (conn && conn.open) {
         conn.send({ type: 'START_GAME', gameState: game, verse: selectedVerse });
     }
+}
+
+// ─── Multiplayer turn lock ────────────────────────────────────
+// In online play, the host controls players[0], guest controls players[1].
+// "My turn" = the current player belongs to me.
+function isMyTurn() {
+    if (!conn || !conn.open) return true; // local game, always allowed
+    const myPlayerIndex = isHost ? 0 : 1;
+    return game.currentTurn === myPlayerIndex;
+}
+
+// ─── Vote system for Menu / Change Verse ────────────────────────
+let _voteState = null; // { action, votes: {host: null, guest: null}, requester }
+
+function requestVote(action) {
+    // action = 'menu' or 'verse'
+    if (!conn || !conn.open) {
+        // Local game: just confirm normally
+        if (action === 'menu') { if (confirm('Return to menu? Game will be lost.')) backToMenu(); }
+        else { if (confirm('Change verse? Game will be lost.')) { backToMenu(); setTimeout(() => showSetup(), 50); } }
+        return;
+    }
+    const requesterLabel = isHost ? 'HOST' : 'GUEST';
+    _voteState = { action, votes: { host: null, guest: null }, requester: requesterLabel };
+    // Cast own vote immediately
+    const myKey = isHost ? 'host' : 'guest';
+    _voteState.votes[myKey] = 'yes';
+    // Send request to other player
+    conn.send({ type: 'VOTE_REQUEST', action, requester: requesterLabel });
+    showVotePanel(action, requesterLabel, true);
+}
+
+function showVotePanel(action, requester, iAm_requester) {
+    const existing = document.getElementById('vote-panel');
+    if (existing) existing.remove();
+
+    const actionLabel = action === 'menu' ? '⬅ BACK TO MENU' : '🔀 CHANGE VERSE';
+    const panel = document.createElement('div');
+    panel.id = 'vote-panel';
+    panel.style.cssText = `
+        position:fixed; top:50%; left:50%;
+        transform:translate(-50%,-50%);
+        background:#0a0a0a; border:2px solid #4d79ff;
+        border-radius:14px; padding:24px 28px;
+        z-index:99000; text-align:center;
+        font-family:sans-serif; color:white;
+        box-shadow:0 0 40px #4d79ff44;
+        min-width:260px;
+    `;
+
+    if (iAm_requester) {
+        panel.innerHTML = `
+            <div style="font-size:12px;color:#888;letter-spacing:2px;margin-bottom:8px;">VOTE REQUEST SENT</div>
+            <div style="font-size:16px;font-weight:900;color:#4d79ff;letter-spacing:2px;margin-bottom:6px;">${actionLabel}</div>
+            <div style="font-size:12px;color:#666;margin-top:10px;">Waiting for other player to vote...</div>
+            <div style="margin-top:14px;width:100%;height:3px;background:#111;border-radius:2px;overflow:hidden;">
+                <div style="height:100%;background:#4d79ff;animation:vote-wait 8s linear forwards;" id="vote-timer-bar"></div>
+            </div>
+        `;
+    } else {
+        panel.innerHTML = `
+            <div style="font-size:12px;color:#888;letter-spacing:2px;margin-bottom:8px;">${requester} REQUESTS</div>
+            <div style="font-size:16px;font-weight:900;color:#ff8844;letter-spacing:2px;margin-bottom:14px;">${actionLabel}</div>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <button onclick="castMenuVote('yes')" style="
+                    padding:10px 22px;background:#4dff8833;border:2px solid #4dff88;
+                    color:#4dff88;border-radius:8px;font-weight:900;font-size:13px;
+                    letter-spacing:2px;cursor:pointer;">✓ AGREE</button>
+                <button onclick="castMenuVote('no')" style="
+                    padding:10px 22px;background:#ff4d4d33;border:2px solid #ff4d4d;
+                    color:#ff4d4d;border-radius:8px;font-weight:900;font-size:13px;
+                    letter-spacing:2px;cursor:pointer;">✗ REFUSE</button>
+            </div>
+        `;
+        // Auto-refuse after 15 seconds
+        setTimeout(() => { if (document.getElementById('vote-panel')) castMenuVote('no'); }, 15000);
+    }
+
+    // Add vote-wait animation if not already present
+    if (!document.getElementById('vote-anim-style')) {
+        const st = document.createElement('style');
+        st.id = 'vote-anim-style';
+        st.textContent = `@keyframes vote-wait { from{width:100%} to{width:0%} }`;
+        document.head.appendChild(st);
+    }
+
+    document.body.appendChild(panel);
+}
+
+function castMenuVote(vote) {
+    closeVotePanel();
+    conn.send({ type: 'VOTE_RESPONSE', vote, voter: isHost ? 'host' : 'guest' });
+    // Handle own side of result
+    if (vote === 'no') showApToast('YOU REFUSED — GAME CONTINUES');
+}
+
+function handleVoteResponse(vote, voter) {
+    if (!_voteState) return;
+    _voteState.votes[voter] = vote;
+    // Check if all voted
+    const { host, guest } = _voteState.votes;
+    if (host !== null && guest !== null) {
+        const approved = host === 'yes' && guest === 'yes';
+        conn.send({ type: 'VOTE_RESULT', approved, action: _voteState.action });
+        closeVotePanel();
+        if (approved) {
+            if (_voteState.action === 'menu') backToMenu();
+            else { backToMenu(); setTimeout(() => showSetup(), 50); }
+        } else {
+            showApToast('VOTE REJECTED — GAME CONTINUES');
+        }
+        _voteState = null;
+    }
+}
+
+function closeVotePanel() {
+    const p = document.getElementById('vote-panel');
+    if (p) p.remove();
 }
 
 
@@ -1666,6 +1799,7 @@ function executeGodTrade(player, indices) {
 }
 
 function handleTrade() {
+    if (conn && conn.open && !isMyTurn()) return;
     if (game.ap < 2) { showApToast("TRADE COSTS 2 AP — NOT ENOUGH"); return; }
     const p = game.players[game.currentTurn];
     const selectedElements = document.querySelectorAll('.hand-card.selected-for-trade');
@@ -2047,6 +2181,9 @@ function handleAwaken() {
 
 // --- MAIN CLICK HANDLER ---
 function handleTileClick(idx) {
+    // Multiplayer: only the current player can act
+    if (conn && conn.open && !isMyTurn()) return;
+
     // Ability Mode: if an active ability is pending a target, route this click there
     if (game.abilityMode && window.abilityPendingType) {
         handleAbilityClick(idx);
@@ -3250,7 +3387,27 @@ function render() {
     document.getElementById('current-player-name').innerText = p.name;
     document.getElementById('current-player-name').style.color = p.color;
 
-    // Ability mode badge
+    // Multiplayer: show whose turn it is for the guest
+    let mpIndicator = document.getElementById('mp-turn-indicator');
+    if (conn && conn.open) {
+        if (!mpIndicator) {
+            mpIndicator = document.createElement('div');
+            mpIndicator.id = 'mp-turn-indicator';
+            mpIndicator.style.cssText = 'font-size:11px;letter-spacing:2px;font-weight:bold;text-align:center;margin-top:4px;padding:4px 10px;border-radius:6px;';
+            document.getElementById('turn-indicator').after(mpIndicator);
+        }
+        if (isMyTurn()) {
+            mpIndicator.innerText = '⚡ YOUR TURN';
+            mpIndicator.style.color = '#4dff88';
+            mpIndicator.style.background = 'rgba(77,255,136,0.1)';
+        } else {
+            mpIndicator.innerText = '⏳ WAITING FOR OPPONENT...';
+            mpIndicator.style.color = '#888';
+            mpIndicator.style.background = 'rgba(0,0,0,0.3)';
+        }
+    } else if (mpIndicator) {
+        mpIndicator.remove();
+    }
     let abModeBadge = document.getElementById('ability-mode-badge');
     if (game.abilityMode && !abModeBadge) {
         abModeBadge = document.createElement('span');
@@ -3282,7 +3439,10 @@ function render() {
         endTurnBtn.innerText = 'END TURN ⏩';
         endTurnBtn.onmouseenter = () => { endTurnBtn.style.color = '#fff'; endTurnBtn.style.borderColor = '#666'; };
         endTurnBtn.onmouseleave = () => { endTurnBtn.style.color = '#555'; endTurnBtn.style.borderColor = '#333'; };
-        endTurnBtn.onclick = () => { game.ap = 1; endAction(); }; // set to 1 then endAction deducts to 0
+        endTurnBtn.onclick = () => {
+            if (conn && conn.open && !isMyTurn()) return;
+            game.ap = 1; endAction();
+        };
         document.getElementById('turn-indicator').parentNode.insertBefore(endTurnBtn, document.getElementById('turn-indicator').nextSibling.nextSibling);
     }
 
@@ -3960,14 +4120,11 @@ function showWinScreen(winner) {
 }
 
 function confirmBackToMenu() {
-    if (confirm("Return to main menu? Current game will be lost.")) backToMenu();
+    requestVote('menu');
 }
 
 function confirmChangeVerse() {
-    if (confirm("Change verse? Current game will be lost.")) {
-        backToMenu();
-        setTimeout(() => showSetup(), 50);
-    }
+    requestVote('verse');
 }
 
 function backToMenu() {

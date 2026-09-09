@@ -558,3 +558,128 @@ button { border: none; cursor: pointer; transition: 0.3s; }
 #ability-container {
     margin-top: 6px;
 }
+/* ═══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVE — phones and small tablets
+   ═══════════════════════════════════════════════════════════ */
+
+/* Allow page to scroll naturally on mobile */
+html { overflow-x: hidden; }
+body { overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 700px) {
+
+    /* ── Menu ── */
+    .logo { font-size: 2rem; letter-spacing: 3px; }
+    .glow-button { padding: 12px 24px; font-size: 13px; }
+    .menu-buttons { gap: 12px; }
+    .join-area { flex-direction: column; align-items: stretch; gap: 8px; }
+    .join-area input { width: 100%; box-sizing: border-box; }
+
+    /* ── Setup ── */
+    .setup-box { min-width: unset; width: calc(100vw - 32px); padding: 20px 16px; }
+
+    /* ── Game screen layout: stack board above hand panel ── */
+    .main-layout {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 4px 60px 4px;
+    }
+
+    /* ── Board: scale down to fit screen ── */
+    #board {
+        display: grid;
+        grid-template-columns: repeat(6, calc((100vw - 40px) / 6));
+        grid-template-rows:    repeat(6, calc((100vw - 40px) / 6));
+        gap: 3px;
+        padding: 8px;
+    }
+
+    .tile {
+        width:  calc((100vw - 40px) / 6);
+        height: calc((100vw - 40px) / 6);
+    }
+
+    .unit-info { font-size: 7px; padding: 1px 0; }
+
+    /* ── AP reference: horizontal scroll ── */
+    #ap-reference {
+        width: calc(100vw - 32px);
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding: 6px 10px;
+    }
+
+    /* ── Trade guide: full width ── */
+    #trade-guide-panel {
+        width: calc(100vw - 32px);
+    }
+
+    /* ── UI Panel: full width below board ── */
+    .ui-panel {
+        width: calc(100vw - 32px);
+        max-height: none;
+        min-height: unset;
+    }
+
+    #hand-display {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .hand-card { width: 75px; height: 108px; }
+    .hand-name-tag { font-size: 8px; }
+
+    /* ── Corner buttons: smaller ── */
+    .game-corner-buttons { top: 6px; right: 8px; gap: 6px; }
+    .corner-btn { padding: 5px 10px; font-size: 10px; }
+
+    /* ── Turn indicator ── */
+    #turn-indicator { font-size: 13px; }
+
+    /* ── Battle modal ── */
+    .modal-content { padding: 20px 12px; width: 95vw; box-sizing: border-box; }
+    .cin-card-img { width: 90px; height: 130px; }
+    .cin-vs { font-size: 44px; }
+    .cin-arena { padding: 16px 8px; min-height: unset; }
+    .cin-combatants { gap: 10px; }
+    .cin-btn { padding: 10px 18px; font-size: 12px; }
+    .cin-analysis-text { font-size: 11px; }
+
+    /* ── Win screen ── */
+    #winner-text { font-size: 2.8rem; text-align: center; }
+
+    /* ── Showdown screen ── */
+    .showdown-arena { gap: 10px; }
+    .showdown-player-col { min-width: 140px; padding: 12px; }
+
+    /* ── Rules screen ── */
+    #rules-screen { padding: 20px 12px; }
+    .rules-section { padding: 14px 16px; }
+
+    /* ── Vote panel: full width on mobile ── */
+    #vote-panel { width: calc(100vw - 48px); min-width: unset; }
+
+    /* ── Card preview tooltip: hidden on mobile (touch doesn't hover) ── */
+    #card-preview { display: none !important; }
+
+    /* ── AP bar ── */
+    #ap-bar { margin-top: 2px; }
+    #end-turn-btn { font-size: 10px; padding: 4px 12px; }
+
+    /* ── Ability container ── */
+    #ability-container { margin-top: 4px; }
+
+    /* ── Scrollable game header ── */
+    .game-header { padding: 4px 8px; }
+    #game-screen { padding-top: 12px; padding-bottom: 20px; }
+}
+
+/* Very small phones (< 380px) */
+@media (max-width: 380px) {
+    .hand-card { width: 64px; height: 92px; }
+    .hand-name-tag { font-size: 7px; }
+    .corner-btn { font-size: 9px; padding: 4px 8px; }
+}
