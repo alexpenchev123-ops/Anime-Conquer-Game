@@ -3,7 +3,7 @@
 A browser-based multiplayer card conquest game featuring characters from 8 anime universes.
 
 ## 🎮 Play Now
-
+ https://alexpenchev123-ops.github.io/Anime-Conquer-Game/
 
 ## 📺 Supported Verses
 - Naruto Shippuden
