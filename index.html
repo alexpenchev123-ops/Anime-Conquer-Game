@@ -12,12 +12,13 @@
             <h1 class="logo">ANIME <span>CONQUER</span></h1>
             <div class="menu-buttons">
                 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-<button class="glow-button" onclick="createOnlineGame()">CREATE ONLINE ROOM</button>
+<button class="glow-button" onclick="createOnlineGame()">🌐 ONLINE ROOM</button>
 <div class="join-area">
     <input type="text" id="join-code" placeholder="ENTER CODE">
     <button class="glow-button" onclick="joinOnlineGame(document.getElementById('join-code').value.trim().toUpperCase())">JOIN ROOM</button>
 </div>
-                <button class="glow-button" onclick="showSetup()">LOCAL MULTIPLAYER</button>
+                <button class="glow-button" onclick="showSetup('local')">⚔️ LOCAL MULTIPLAYER</button>
+                <button class="glow-button" onclick="showSetup('passplay')" style="background:#1a2e1a;border:1px solid #4dff88;color:#4dff88;">📱 PASS & PLAY</button>
                 <button class="glow-button" onclick="showRules()" style="background:#1a1a2e;border:1px solid #4d79ff;">HOW TO PLAY</button>
             </div>
         </div>
@@ -72,6 +73,7 @@
             <div class="game-corner-buttons">
                 <button class="corner-btn" onclick="confirmBackToMenu()">⬅ MENU</button>
                 <button class="corner-btn" onclick="confirmChangeVerse()">🔀 CHANGE VERSE</button>
+                <button class="corner-btn" onclick="requestVote('endgame')" style="border-color:#ff4d4d;color:#ff4d4d;">🏳️ END GAME</button>
             </div>
             <div class="game-header">
                 <div id="turn-indicator"><span id="current-player-name">---</span>'S TURN</div>
