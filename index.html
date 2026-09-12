@@ -7,67 +7,97 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <div id="menu" class="screen active">
-            <h1 class="logo">ANIME <span>CONQUER</span></h1>
-            <div class="menu-buttons">
+<div id="game-container">
+
+    <!-- ═══════════════ MAIN MENU ═══════════════ -->
+    <div id="menu" class="screen active">
+        <div class="menu-bg-particles" id="menu-particles"></div>
+        <div class="menu-content">
+            <div class="menu-subtitle-top">アニメ · CARD CONQUEST · 征服</div>
+            <h1 class="logo">ANIME<br><span>CONQUER</span></h1>
+            <div class="menu-subtitle-bot">Choose your battlefield</div>
+
+            <div class="menu-section-label">⚔ ONLINE</div>
+            <div class="menu-buttons-group">
                 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-<button class="glow-button" onclick="createOnlineGame()">🌐 ONLINE ROOM</button>
-<div class="join-area">
-    <input type="text" id="join-code" placeholder="ENTER CODE">
-    <button class="glow-button" onclick="joinOnlineGame(document.getElementById('join-code').value.trim().toUpperCase())">JOIN ROOM</button>
-</div>
-                <button class="glow-button" onclick="showSetup('local')">⚔️ LOCAL MULTIPLAYER</button>
-                <button class="glow-button" onclick="showSetup('passplay')" style="background:#1a2e1a;border:1px solid #4dff88;color:#4dff88;">📱 PASS & PLAY</button>
-                <button class="glow-button" onclick="showRules()" style="background:#1a1a2e;border:1px solid #4d79ff;">HOW TO PLAY</button>
-            </div>
-        </div>
-        <div id="setup" class="screen">
-            <h2>WAR ROOM</h2>
-            <div class="setup-box">
-                <label for="verse-select">SELECT UNIVERSE</label>
-                <select id="verse-select" onchange="updateVersePreview(this.value)">
-                    <option value="Naruto">Naruto Shippuden</option>
-                    <option value="OnePiece">One Piece</option>
-                    <option value="Bleach">Bleach</option>
-                    <option value="JJK">Jujutsu Kaisen</option>
-                    <option value="DemonSlayer">Demon Slayer</option>
-                    <option value="MHA">My Hero Academia</option>
-                    <option value="HxH">Hunter x Hunter</option>
-                    <option value="FireForce">Fire Force</option>
-                </select>
-                <div id="verse-preview-wrap" style="
-                    width:100%; height:140px; border-radius:10px; overflow:hidden;
-                    position:relative; background:#0a0a0a; border:1px solid #222;
-                    margin-top:2px; flex-shrink:0;
-                ">
-                    <img id="verse-preview-img" src="verses/naruto.jpg" alt=""
-                        style="width:100%;height:100%;object-fit:cover;object-position:center top;display:block;transition:opacity 0.3s;">
-                    <div id="verse-preview-label" style="
-                        position:absolute;bottom:0;left:0;right:0;
-                        background:linear-gradient(transparent,rgba(0,0,0,0.85));
-                        color:white;font-size:13px;font-weight:900;letter-spacing:3px;
-                        padding:14px 12px 8px; text-transform:uppercase;
-                    ">Naruto Shippuden</div>
+                <button class="menu-btn menu-btn-primary" onclick="createOnlineGame()">
+                    <span class="menu-btn-icon">🌐</span>
+                    <span class="menu-btn-text">CREATE ROOM</span>
+                    <span class="menu-btn-sub">Host an online game</span>
+                </button>
+                <div class="join-row">
+                    <input type="text" id="join-code" placeholder="ROOM CODE" class="join-input">
+                    <button class="menu-btn menu-btn-secondary join-btn" onclick="joinOnlineGame(document.getElementById('join-code').value.trim().toUpperCase())">
+                        <span>JOIN</span>
+                    </button>
                 </div>
+            </div>
 
-                <label for="game-mode-select">GAME MODE</label>
-                <select id="game-mode-select">
-                    <option value="conquest">⚔️ CONQUEST — Eliminate all opponents</option>
-                    <option value="showdown">🏆 SHOWDOWN — Collect then battle all-v-all</option>
-                    <option value="ability">⚡ ABILITY MODE — Every character has a unique power</option>
-                </select>
+            <div class="menu-section-label">👥 LOCAL</div>
+            <div class="menu-buttons-group">
+                <button class="menu-btn menu-btn-secondary" onclick="showSetup('local')">
+                    <span class="menu-btn-icon">⚔️</span>
+                    <span class="menu-btn-text">LOCAL MULTIPLAYER</span>
+                    <span class="menu-btn-sub">Same screen · players decide battles</span>
+                </button>
+                <button class="menu-btn menu-btn-secondary" onclick="showSetup('voting')">
+                    <span class="menu-btn-icon">🗳️</span>
+                    <span class="menu-btn-text">VOTING MULTIPLAYER</span>
+                    <span class="menu-btn-sub">Hidden hands · vote who wins · AI tie-break</span>
+                </button>
+            </div>
 
-                <label for="player-count">PLAYER COUNT</label>
-                <select id="player-count" onchange="generateNameInputs()">
-                    <option value="2">2 Players</option>
-                    <option value="3">3 Players</option>
-                    <option value="4">4 Players</option>
-                </select>
-                <div id="name-inputs"></div>
-                <button class="start-button" onclick="initGame()">BEGIN CONQUEST</button>
+            <div class="menu-buttons-group" style="margin-top:8px;">
+                <button class="menu-btn menu-btn-ghost" onclick="showRules()">
+                    <span class="menu-btn-icon">📖</span>
+                    <span class="menu-btn-text">HOW TO PLAY</span>
+                </button>
             </div>
         </div>
+    </div>
+
+    <!-- ═══════════════ SETUP ═══════════════ -->
+    <div id="setup" class="screen">
+        <div class="setup-header">
+            <div class="setup-kanji">征服</div>
+            <h2 class="setup-title">WAR ROOM</h2>
+            <div class="setup-mode-badge" id="setup-mode-badge">LOCAL</div>
+        </div>
+        <div class="setup-box">
+            <label for="verse-select">SELECT UNIVERSE</label>
+            <select id="verse-select" onchange="updateVersePreview(this.value)">
+                <option value="Naruto">Naruto Shippuden</option>
+                <option value="OnePiece">One Piece</option>
+                <option value="Bleach">Bleach</option>
+                <option value="JJK">Jujutsu Kaisen</option>
+                <option value="DemonSlayer">Demon Slayer</option>
+                <option value="MHA">My Hero Academia</option>
+                <option value="HxH">Hunter x Hunter</option>
+                <option value="FireForce">Fire Force</option>
+            </select>
+            <div id="verse-preview-wrap">
+                <img id="verse-preview-img" src="verses/naruto.jpg" alt="">
+                <div id="verse-preview-label">Naruto Shippuden</div>
+            </div>
+
+            <label for="game-mode-select">GAME MODE</label>
+            <select id="game-mode-select">
+                <option value="conquest">⚔️ CONQUEST — Eliminate all opponents</option>
+                <option value="showdown">🏆 SHOWDOWN — Collect then battle all-v-all</option>
+                <option value="ability">⚡ ABILITY MODE — Every character has a unique power</option>
+            </select>
+
+            <label for="player-count">PLAYER COUNT</label>
+            <select id="player-count" onchange="generateNameInputs()">
+                <option value="2">2 Players</option>
+                <option value="3">3 Players</option>
+                <option value="4">4 Players</option>
+            </select>
+            <div id="name-inputs"></div>
+            <button class="start-button" onclick="initGame()">BEGIN CONQUEST</button>
+            <button class="back-btn" onclick="backToMenu()">← BACK</button>
+        </div>
+    </div>
 
         <div id="game-screen" class="screen">
             <div class="game-corner-buttons">
