@@ -57,7 +57,7 @@ const animeDB = {
             { name: "Genma", img: "naruto2/genma.jpg" }, { name: "Torune", img: "naruto2/torume.jpg" },
             { name: "Foo", img: "naruto2/fu.jpg" }, { name: "Dosu Kinuta", img: "naruto2/dosu.jpg" },
             { name: "Mizuki", img: "naruto2/mizuki.jpg" }, { name: "Dan Kato", img: "naruto2/dan.jpg" },
-            { name: "Tayuya", img: "naruto2/Tayuya.jpg" }, { name: "Karui", img: "naruto2/karui.jpg" },
+            { name: "Tayuya", img: "naruto2/tayuya.jpg" }, { name: "Karui", img: "naruto2/karui.jpg" },
             { name: "Shikaku", img: "naruto2/shikaku.jpg" }, { name: "Sakon/Ukon", img: "naruto2/akon and ukon.jpg" },
             { name: "Kidomaru", img: "naruto2/kidomaru.jpg" }, { name: "Jirobo", img: "naruto2/jirobo.jpg" },
             { name: "Omoi", img: "naruto2/omoi.jpg" }, { name: "Kimmimaro", img: "naruto2/kimmimaro.jpg" },
@@ -1218,96 +1218,115 @@ let peer;
 let conn;
 let isHost = false;
 
-function createOnlineGame() {
+function createOnlineGame(onlineMode) {
     isHost = true;
+    game.votingMode = (onlineMode === 'voting');
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const modeLabel = game.votingMode ? '🗳️ VOTING ONLINE' : '🌐 STANDARD ONLINE';
 
-    // Show waiting UI
-    const menu = document.getElementById('menu');
-    menu.innerHTML = `
-        <h1 class="logo">ANIME <span>CONQUER</span></h1>
-        <div style="text-align:center;margin-top:20px;">
-            <div style="font-size:13px;color:#888;letter-spacing:3px;margin-bottom:12px;">ROOM CODE</div>
-            <div style="font-size:48px;font-weight:900;letter-spacing:8px;color:#4dff88;text-shadow:0 0 20px #4dff88;font-family:'Arial Black',sans-serif;">${roomCode}</div>
-            <div style="font-size:12px;color:#555;margin-top:10px;letter-spacing:2px;">Share this code — or send the link below</div>
-            <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
-                <button class="glow-button" style="padding:10px 20px;font-size:12px;background:#0d2b1a;border:1px solid #4dff88;color:#4dff88;"
-                    onclick="
-                        navigator.clipboard.writeText('${roomCode}').then(()=>{
-                            this.innerText='✅ CODE COPIED!';
-                            setTimeout(()=>this.innerText='📋 COPY CODE',1500);
-                        });
-                    ">📋 COPY CODE</button>
-                <button class="glow-button" style="padding:10px 20px;font-size:12px;background:#0d1a2b;border:1px solid #4d79ff;color:#4d79ff;"
-                    onclick="
-                        const link = window.location.href.split('#')[0] + '?join=${roomCode}';
-                        navigator.clipboard.writeText(link).then(()=>{
-                            this.innerText='✅ LINK COPIED!';
-                            setTimeout(()=>this.innerText='🔗 COPY INVITE LINK',1500);
-                        });
-                    ">🔗 COPY INVITE LINK</button>
-            </div>
-            <div id="mp-status" style="margin-top:20px;font-size:13px;color:#888;letter-spacing:2px;">⏳ WAITING FOR PLAYER 2...</div>
-            <button class="glow-button" onclick="location.reload()" style="margin-top:16px;background:#1a1a2e;border:1px solid #333;color:#555;padding:8px 20px;font-size:12px;">✕ CANCEL</button>
+    _showOnlineOverlay(`
+        <button class="back-arrow" onclick="cancelOnlineSetup()">← CANCEL</button>
+        <div class="submenu-eyebrow">${modeLabel}</div>
+        <h2 class="submenu-title">YOUR ROOM</h2>
+        <div style="text-align:center;padding:8px 0 18px;">
+            <div style="font-size:10px;color:#333;letter-spacing:4px;margin-bottom:10px;">ROOM CODE</div>
+            <div style="font-size:52px;font-weight:900;letter-spacing:10px;color:#4dff88;
+                text-shadow:0 0 24px #4dff8866;font-family:'Arial Black',sans-serif;">${roomCode}</div>
+            <div style="font-size:10px;color:#222;margin-top:8px;letter-spacing:2px;">Share with your friend</div>
         </div>
-    `;
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;">
+            <button class="start-btn" style="font-size:11px;padding:10px 18px;letter-spacing:1px;"
+                onclick="navigator.clipboard.writeText('${roomCode}').then(()=>{this.innerText='✅ COPIED!';setTimeout(()=>this.innerText='📋 COPY CODE',1500)})">
+                📋 COPY CODE</button>
+            <button class="start-btn" style="font-size:11px;padding:10px 18px;letter-spacing:1px;background:linear-gradient(135deg,#1a3a5c,#2a5080);"
+                onclick="const l=location.href.split('?')[0]+'?join=${roomCode}';navigator.clipboard.writeText(l).then(()=>{this.innerText='✅ LINK COPIED!';setTimeout(()=>this.innerText='🔗 COPY LINK',1500)})">
+                🔗 COPY INVITE LINK</button>
+        </div>
+        <div id="mp-status" style="text-align:center;font-size:12px;color:#444;letter-spacing:2px;">
+            ⏳ WAITING FOR PLAYER 2...
+        </div>
+    `);
 
     peer = new Peer(roomCode);
-
-    peer.on('error', (err) => {
-        document.getElementById('mp-status').innerText = '❌ Error: ' + err.message;
-    });
-
-    peer.on('open', () => {
-        document.getElementById('mp-status').innerText = '⏳ WAITING FOR PLAYER 2...';
-    });
-
-    peer.on('connection', (connection) => {
+    peer.on('error', err => { const s=document.getElementById('mp-status'); if(s) s.innerText='❌ '+err.message; });
+    peer.on('open', () => { const s=document.getElementById('mp-status'); if(s) s.innerText='⏳ WAITING FOR PLAYER 2...'; });
+    peer.on('connection', connection => {
         conn = connection;
         conn.on('open', () => {
-            document.getElementById('mp-status').innerText = '✅ PLAYER 2 CONNECTED! Loading setup...';
-            setTimeout(() => showSetup(), 800);
+            const s=document.getElementById('mp-status');
+            if(s) s.innerText='✅ PLAYER 2 CONNECTED! Setting up...';
+            conn.send({ type:'SET_MODE', votingMode: game.votingMode });
+            setTimeout(() => { _hideOnlineOverlay(); showSetup(game.votingMode ? 'voting' : 'normal'); }, 800);
         });
         conn.on('data', handleIncomingData);
-        conn.on('error', (err) => console.error('conn error', err));
+        conn.on('error', err => console.error('conn error', err));
     });
 }
-function joinOnlineGame() {
-    const code = document.getElementById('join-code').value.trim().toUpperCase();
-    if (!code) { alert("Enter a room code first."); return; }
 
+function joinOnlineGame() {
+    const code = document.getElementById('join-code')?.value.trim().toUpperCase();
+    if (!code) { alert('Enter a room code first.'); return; }
     isHost = false;
 
-    const menu = document.getElementById('menu');
-    const statusEl = document.createElement('div');
-    statusEl.id = 'mp-status';
-    statusEl.style.cssText = 'text-align:center;margin-top:16px;font-size:13px;color:#888;letter-spacing:2px;';
-    statusEl.innerText = '⏳ CONNECTING...';
-    menu.appendChild(statusEl);
+    _showOnlineOverlay(`
+        <button class="back-arrow" onclick="cancelOnlineSetup()">← CANCEL</button>
+        <div class="submenu-eyebrow">JOIN GAME</div>
+        <h2 class="submenu-title">CONNECTING</h2>
+        <div id="mp-status" style="text-align:center;font-size:14px;color:#666;letter-spacing:2px;margin-top:20px;">
+            ⏳ CONNECTING TO <span style="color:#4dff88;letter-spacing:4px;">${code}</span>...
+        </div>
+    `);
 
     peer = new Peer();
-
-    peer.on('error', (err) => {
-        statusEl.innerText = '❌ Error: ' + err.message;
-    });
-
+    peer.on('error', err => { const s=document.getElementById('mp-status'); if(s) s.innerHTML='❌ '+err.message+'<br><small style="color:#333;font-size:10px;">Check the code and try again</small>'; });
     peer.on('open', () => {
         conn = peer.connect(code, { reliable: true });
-
-        conn.on('open', () => {
-            statusEl.innerText = '✅ CONNECTED! Waiting for host to start...';
-        });
-
+        conn.on('open', () => { const s=document.getElementById('mp-status'); if(s) s.innerText='✅ CONNECTED! Waiting for host...'; });
         conn.on('data', handleIncomingData);
-        conn.on('error', (err) => {
-            statusEl.innerText = '❌ Connection error. Check the code.';
-        });
+        conn.on('error', () => { const s=document.getElementById('mp-status'); if(s) s.innerText='❌ Connection failed. Check the code.'; });
     });
+}
+
+// Overlay helpers — shows a panel on TOP of the online-menu without destroying it
+function _showOnlineOverlay(html) {
+    let ov = document.getElementById('online-overlay');
+    if (!ov) {
+        ov = document.createElement('div');
+        ov.id = 'online-overlay';
+        ov.style.cssText = `
+            position:fixed; inset:0; background:#030308;
+            z-index:5000; display:flex; align-items:center; justify-content:center;
+            flex-direction:column; overflow-y:auto;
+        `;
+        document.body.appendChild(ov);
+    }
+    ov.innerHTML = `<div class="submenu-inner" style="max-width:500px;width:100%;">${html}</div>`;
+    ov.style.display = 'flex';
+}
+
+function _hideOnlineOverlay() {
+    const ov = document.getElementById('online-overlay');
+    if (ov) ov.style.display = 'none';
+}
+
+function cancelOnlineSetup() {
+    _hideOnlineOverlay();
+    if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+    if (conn) { try { conn.close(); } catch(e){} conn = null; }
+    isHost = false;
+    // Stay on online-menu
+    _showScreen('online-menu');
 }
 
 function handleIncomingData(data) {
+    if (data.type === 'SET_MODE') {
+        game.votingMode = data.votingMode;
+        _hideOnlineOverlay();
+        showSetup(data.votingMode ? 'voting' : 'normal');
+    }
     if (data.type === 'START_GAME') {
         game = data.gameState;
+        _navHistory = ['menu', 'game-screen'];
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('game-screen').classList.add('active');
         selectedVerse = data.verse;
@@ -1318,21 +1337,25 @@ function handleIncomingData(data) {
         render();
     }
     if (data.type === 'VOTE_REQUEST') {
-        // Other player wants to go to menu or change verse
-        showVotePanel(data.action, data.requester, false);
+        const totalPlayers = game.players.filter(p => !p.eliminated).length;
+        _voteState = { action: data.action, threshold: data.threshold || 0.5, totalPlayers, votes: {}, requester: data.requester };
+        showVotePanel(data.action, data.requester, false, data.threshold || 0.5, totalPlayers);
     }
     if (data.type === 'VOTE_RESPONSE') {
-        handleVoteResponse(data.vote, data.voter);
+        handleVoteResponse(data.vote, data.voter, data.color);
     }
     if (data.type === 'VOTE_RESULT') {
-        if (data.approved) {
-            closeVotePanel();
-            if (data.action === 'menu') backToMenu();
-            else if (data.action === 'verse') { backToMenu(); setTimeout(() => showSetup(), 50); }
-        } else {
-            closeVotePanel();
-            showApToast('VOTE REJECTED — GAME CONTINUES');
-        }
+        closeVotePanel();
+        _applyVoteResult(data.approved, data.action, data.yesVotes, data.needed);
+    }
+    if (data.type === 'BATTLE_VOTE_CAST') {
+        handleBattleVoteCast(data.side, data.voter);
+    }
+    if (data.type === 'BATTLE_VOTE') {
+        showBattleVoteModal(data.atkName, data.defName, false);
+    }
+    if (data.type === 'BATTLE_VOTE_RESULT') {
+        resolveBattleVotes(data.atkVotes, data.defVotes, data.atkName, data.defName);
     }
 }
 
@@ -1341,141 +1364,85 @@ function syncGameToGuest() {
         conn.send({ type: 'START_GAME', gameState: game, verse: selectedVerse });
     }
 }
+let _navHistory = ['menu'];
 
-// ─── Multiplayer turn lock ────────────────────────────────────
-// In online play, the host controls players[0], guest controls players[1].
-// "My turn" = the current player belongs to me.
-function isMyTurn() {
-    if (!conn || !conn.open) return true; // local game, always allowed
-    const myPlayerIndex = isHost ? 0 : 1;
-    return game.currentTurn === myPlayerIndex;
+function goBack(target) {
+    // Always go to explicit target if given, otherwise pop history
+    const dest = target || (_navHistory.length > 1 ? (_navHistory.pop(), _navHistory[_navHistory.length-1]) : 'menu');
+    _showScreen(dest, true);
 }
 
-// ─── Vote system for Menu / Change Verse ────────────────────────
-let _voteState = null; // { action, votes: {host: null, guest: null}, requester }
+function _showScreen(id, fromBack) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    // Hide any overlay
+    const ov = document.getElementById('online-overlay');
+    if (ov) ov.style.display = 'none';
 
-function requestVote(action) {
-    // action = 'menu' or 'verse'
-    if (!conn || !conn.open) {
-        // Local game: just confirm normally
-        if (action === 'menu') { if (confirm('Return to menu? Game will be lost.')) backToMenu(); }
-        else { if (confirm('Change verse? Game will be lost.')) { backToMenu(); setTimeout(() => showSetup(), 50); } }
-        return;
-    }
-    const requesterLabel = isHost ? 'HOST' : 'GUEST';
-    _voteState = { action, votes: { host: null, guest: null }, requester: requesterLabel };
-    // Cast own vote immediately
-    const myKey = isHost ? 'host' : 'guest';
-    _voteState.votes[myKey] = 'yes';
-    // Send request to other player
-    conn.send({ type: 'VOTE_REQUEST', action, requester: requesterLabel });
-    showVotePanel(action, requesterLabel, true);
-}
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
 
-function showVotePanel(action, requester, iAm_requester) {
-    const existing = document.getElementById('vote-panel');
-    if (existing) existing.remove();
-
-    const actionLabel = action === 'menu' ? '⬅ BACK TO MENU' : '🔀 CHANGE VERSE';
-    const panel = document.createElement('div');
-    panel.id = 'vote-panel';
-    panel.style.cssText = `
-        position:fixed; top:50%; left:50%;
-        transform:translate(-50%,-50%);
-        background:#0a0a0a; border:2px solid #4d79ff;
-        border-radius:14px; padding:24px 28px;
-        z-index:99000; text-align:center;
-        font-family:sans-serif; color:white;
-        box-shadow:0 0 40px #4d79ff44;
-        min-width:260px;
-    `;
-
-    if (iAm_requester) {
-        panel.innerHTML = `
-            <div style="font-size:12px;color:#888;letter-spacing:2px;margin-bottom:8px;">VOTE REQUEST SENT</div>
-            <div style="font-size:16px;font-weight:900;color:#4d79ff;letter-spacing:2px;margin-bottom:6px;">${actionLabel}</div>
-            <div style="font-size:12px;color:#666;margin-top:10px;">Waiting for other player to vote...</div>
-            <div style="margin-top:14px;width:100%;height:3px;background:#111;border-radius:2px;overflow:hidden;">
-                <div style="height:100%;background:#4d79ff;animation:vote-wait 8s linear forwards;" id="vote-timer-bar"></div>
-            </div>
-        `;
-    } else {
-        panel.innerHTML = `
-            <div style="font-size:12px;color:#888;letter-spacing:2px;margin-bottom:8px;">${requester} REQUESTS</div>
-            <div style="font-size:16px;font-weight:900;color:#ff8844;letter-spacing:2px;margin-bottom:14px;">${actionLabel}</div>
-            <div style="display:flex;gap:12px;justify-content:center;">
-                <button onclick="castMenuVote('yes')" style="
-                    padding:10px 22px;background:#4dff8833;border:2px solid #4dff88;
-                    color:#4dff88;border-radius:8px;font-weight:900;font-size:13px;
-                    letter-spacing:2px;cursor:pointer;">✓ AGREE</button>
-                <button onclick="castMenuVote('no')" style="
-                    padding:10px 22px;background:#ff4d4d33;border:2px solid #ff4d4d;
-                    color:#ff4d4d;border-radius:8px;font-weight:900;font-size:13px;
-                    letter-spacing:2px;cursor:pointer;">✗ REFUSE</button>
-            </div>
-        `;
-        // Auto-refuse after 15 seconds
-        setTimeout(() => { if (document.getElementById('vote-panel')) castMenuVote('no'); }, 15000);
-    }
-
-    // Add vote-wait animation if not already present
-    if (!document.getElementById('vote-anim-style')) {
-        const st = document.createElement('style');
-        st.id = 'vote-anim-style';
-        st.textContent = `@keyframes vote-wait { from{width:100%} to{width:0%} }`;
-        document.head.appendChild(st);
-    }
-
-    document.body.appendChild(panel);
-}
-
-function castMenuVote(vote) {
-    closeVotePanel();
-    conn.send({ type: 'VOTE_RESPONSE', vote, voter: isHost ? 'host' : 'guest' });
-    // Handle own side of result
-    if (vote === 'no') showApToast('YOU REFUSED — GAME CONTINUES');
-}
-
-function handleVoteResponse(vote, voter) {
-    if (!_voteState) return;
-    _voteState.votes[voter] = vote;
-    // Check if all voted
-    const { host, guest } = _voteState.votes;
-    if (host !== null && guest !== null) {
-        const approved = host === 'yes' && guest === 'yes';
-        conn.send({ type: 'VOTE_RESULT', approved, action: _voteState.action });
-        closeVotePanel();
-        if (approved) {
-            if (_voteState.action === 'menu') backToMenu();
-            else { backToMenu(); setTimeout(() => showSetup(), 50); }
-        } else {
-            showApToast('VOTE REJECTED — GAME CONTINUES');
+    if (!fromBack) {
+        if (!_navHistory.length || _navHistory[_navHistory.length - 1] !== id) {
+            _navHistory.push(id);
         }
-        _voteState = null;
+    } else {
+        // Ensure history ends at this id
+        while (_navHistory.length > 1 && _navHistory[_navHistory.length - 1] !== id) {
+            _navHistory.pop();
+        }
+        if (!_navHistory.length) _navHistory = [id];
     }
 }
 
-function closeVotePanel() {
-    const p = document.getElementById('vote-panel');
-    if (p) p.remove();
+function showOnlineMenu() {
+    _showScreen('online-menu');
 }
-
 
 function showRules() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('rules-screen').classList.add('active');
+    _showScreen('rules-screen');
 }
 
 function hideRules() {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('menu').classList.add('active');
+    goBack('menu');
 }
 
-function showSetup() {
-    document.getElementById('menu').classList.remove('active');
-    document.getElementById('setup').classList.add('active');
+function showSetup(mode) {
+    game.votingMode = (mode === 'voting');
+    _showScreen('setup');
+    const eyebrow = document.getElementById('setup-eyebrow');
+    if (eyebrow) {
+        eyebrow.innerText = mode === 'voting'  ? '🗳️ VOTING ONLINE'
+                          : (conn && conn.open) ? '🌐 ONLINE'
+                          : '⚔️ LOCAL MULTIPLAYER';
+    }
+    // Wire back button dynamically
+    const backBtn = document.getElementById('setup-back-btn');
+    if (backBtn) {
+        backBtn.onclick = () => {
+            if (conn && conn.open) goBack('online-menu');
+            else goBack('menu');
+        };
+    }
     generateNameInputs();
     updateVersePreview(document.getElementById('verse-select').value);
+}
+
+// ─── Pass-device screen for local mode ───────────────────────
+let _passScreenActive = false;
+
+function showPassScreen(playerName, playerColor) {
+    _passScreenActive = true;
+    const nameEl = document.getElementById('pass-player-name');
+    if (nameEl) { nameEl.innerText = playerName.toUpperCase(); nameEl.style.color = playerColor; }
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('pass-screen').classList.add('active');
+}
+
+function dismissPassScreen() {
+    _passScreenActive = false;
+    document.getElementById('pass-screen').classList.remove('active');
+    document.getElementById('game-screen').classList.add('active');
+    render();
 }
 
 const VERSE_PREVIEW = {
@@ -1688,11 +1655,18 @@ function initGame() {
         syncGameToGuest();
     }
 
-    // Switch Screens
-    document.getElementById('setup').classList.remove('active');
+    // Switch to game screen
+    _navHistory = ['menu', 'game-screen'];
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('game-screen').classList.add('active');
-    
+
     render();
+
+    // In local mode show pass screen for first player; online just render
+    if (!conn || !conn.open) {
+        const firstPlayer = game.players[game.currentTurn];
+        setTimeout(() => showPassScreen(firstPlayer.name, firstPlayer.color), 300);
+    }
 }
 
 function pull(tier) {
@@ -1799,7 +1773,6 @@ function executeGodTrade(player, indices) {
 }
 
 function handleTrade() {
-    if (conn && conn.open && !isMyTurn()) return;
     if (game.ap < 2) { showApToast("TRADE COSTS 2 AP — NOT ENOUGH"); return; }
     const p = game.players[game.currentTurn];
     const selectedElements = document.querySelectorAll('.hand-card.selected-for-trade');
@@ -2181,9 +2154,6 @@ function handleAwaken() {
 
 // --- MAIN CLICK HANDLER ---
 function handleTileClick(idx) {
-    // Multiplayer: only the current player can act
-    if (conn && conn.open && !isMyTurn()) return;
-
     // Ability Mode: if an active ability is pending a target, route this click there
     if (game.abilityMode && window.abilityPendingType) {
         handleAbilityClick(idx);
@@ -2414,17 +2384,17 @@ function openCinematicBattle(allies, defAllies, countLabel) {
     </div>`;
 
     const activePlayers = game.players.filter(p => !p.eliminated);
-    const isMultiplayer = !!(conn && conn.open);
-    const is2Player = activePlayers.length === 2;
+    const isOnline = !!(conn && conn.open);
+    const isVotingOnline = isOnline && game.votingMode;
+    const isStandardOnline = isOnline && !game.votingMode;
 
     let btnHTML = '';
-    if (isMultiplayer && is2Player) {
-        // MULTIPLAYER 2-player: auto-resolve with explanation
+
+    if (isStandardOnline) {
+        // Standard online: auto-resolve by power with explanation
         const atkUnit = allies[0], defUnit = defAllies[0];
         const { atkWins, atkWinChance, defWinChance, reasoning, tieMethod } = getBattleAnalysis(atkUnit, defUnit);
-
         const tieHTML = tieMethod ? `<div class="cin-tie-method">⚖️ ${tieMethod}</div>` : '';
-
         btnHTML = `
         <div class="cin-analysis">
             <div class="cin-analysis-text">${reasoning}</div>
@@ -2436,36 +2406,40 @@ function openCinematicBattle(allies, defAllies, countLabel) {
             </div>
         </div>
         <div class="cin-buttons">
-            <button class="cin-btn cin-btn-auto" style="background:${atkWins ? col1 : '#ff4d4d'};" onclick="resolveManual(${atkWins})">
-                ⚡ ${atkWins ? atkUnit.name.toUpperCase() + ' WINS' : defUnit.name.toUpperCase() + ' WINS'}
+            <button class="cin-btn cin-btn-auto" style="background:${atkWins?col1:'#ff4d4d'};" onclick="resolveManual(${atkWins})">
+                ⚡ ${atkWins ? allies[0].name.toUpperCase()+' WINS' : defAllies[0].name.toUpperCase()+' WINS'}
             </button>
         </div>`;
-    } else if (isMultiplayer && !is2Player) {
-        // MULTIPLAYER 3-4 players: voting
-        const currentPlayer = game.players[game.currentTurn];
-        const voters = activePlayers.filter(p => p.color !== currentPlayer.color);
-        window._votes = {};
-        window._votersNeeded = voters.length;
 
-        const voterBtns = voters.map(voter => `
-            <div class="cin-voter" id="voter-${voter.color}">
-                <div class="cin-voter-name" style="color:${voter.color}">${voter.name}</div>
-                <div class="cin-voter-btns">
-                    <button class="cin-vote-btn" style="border-color:${col1};color:${col1};"
-                        onclick="castVote('${voter.color}','atk',this)">⚔️ ATTACKER</button>
-                    <button class="cin-vote-btn" style="border-color:#ff4d4d;color:#ff4d4d;"
-                        onclick="castVote('${voter.color}','def',this)">🛡️ DEFENDER</button>
-                </div>
-            </div>`).join('');
-
+    } else if (isVotingOnline) {
+        // Voting online: both players vote in the battle modal
+        // Host sees buttons immediately; guest waits for host to trigger
+        window._battleVoteData = { atkName: allies[0].name, defName: defAllies[0].name, votes: {} };
+        if (isHost) {
+            // Send vote request to guest
+            conn.send({ type: 'BATTLE_VOTE', atkName: allies[0].name, defName: defAllies[0].name });
+        }
+        const myLabel = isHost ? 'HOST' : 'GUEST';
         btnHTML = `
         <div class="cin-vote-area">
-            <div class="cin-vote-title">— PLAYERS VOTE —</div>
-            <div class="cin-voters">${voterBtns}</div>
-            <div id="vote-status" class="cin-vote-status">Waiting for votes (0/${voters.length})</div>
+            <div class="cin-vote-title">— VOTE WHO WINS —</div>
+            <div class="cin-analysis-text" style="margin-bottom:12px;">${allies[0].name} vs ${defAllies[0].name}</div>
+            <div class="cin-voters">
+                <div class="cin-voter">
+                    <div class="cin-voter-name" style="color:#aaa">${myLabel}'S VOTE</div>
+                    <div class="cin-voter-btns">
+                        <button class="cin-vote-btn" style="border-color:${col1};color:${col1};"
+                            onclick="castOnlineBattleVote('atk',this)">⚔️ ATTACKER</button>
+                        <button class="cin-vote-btn" style="border-color:#ff4d4d;color:#ff4d4d;"
+                            onclick="castOnlineBattleVote('def',this)">🛡️ DEFENDER</button>
+                    </div>
+                </div>
+            </div>
+            <div id="battle-vote-status" class="cin-vote-status">Waiting for both players...</div>
         </div>`;
+
     } else {
-        // LOCAL: always manual — players decide themselves
+        // Local: manual buttons
         btnHTML = `
         <div class="cin-buttons">
             <button class="cin-btn" style="background:${col1};" onclick="resolveManual(true)">⚔️ ATTACKER WINS</button>
@@ -3146,6 +3120,50 @@ function clearAbilityPending() {
     render();
 }
 
+// ─── Online voting battle functions ──────────────────────────
+function castOnlineBattleVote(side, btn) {
+    btn.closest('.cin-voter-btns').querySelectorAll('.cin-vote-btn').forEach(b => {
+        b.disabled = true; b.style.opacity = '0.4';
+    });
+    btn.style.opacity = '1';
+    window._battleVoteData = window._battleVoteData || { votes: {} };
+    const myRole = isHost ? 'host' : 'guest';
+    window._battleVoteData.votes[myRole] = side;
+    const statusEl = document.getElementById('battle-vote-status');
+    if (statusEl) statusEl.innerText = 'Your vote recorded. Waiting for opponent...';
+    if (conn && conn.open) conn.send({ type: 'BATTLE_VOTE_CAST', side, voter: myRole });
+    _checkOnlineBattleVotes();
+}
+
+function _checkOnlineBattleVotes() {
+    const votes = window._battleVoteData?.votes || {};
+    if (!votes.host || !votes.guest) return;
+    const atkV = Object.values(votes).filter(v => v === 'atk').length;
+    const defV = Object.values(votes).filter(v => v === 'def').length;
+    if (isHost) {
+        const statusEl = document.getElementById('battle-vote-status');
+        if (atkV !== defV) {
+            const atkWins = atkV > defV;
+            if (statusEl) { statusEl.style.color = atkWins?'#4dff88':'#ff4d4d'; statusEl.style.fontWeight='900'; statusEl.innerText = atkWins?'⚔️ ATTACKER WINS!':'🛡️ DEFENDER WINS!'; }
+            setTimeout(() => resolveManual(atkWins), 1000);
+        } else {
+            if (statusEl) statusEl.innerText = '⚖️ TIE — decided by power score';
+            const aU = game.grid[window.currentAtkIdx]?.unit;
+            const dU = game.grid[window.currentDefIdx]?.unit;
+            setTimeout(() => resolveManual(unitScore(aU||{}) >= unitScore(dU||{})), 1200);
+        }
+    }
+}
+
+// Guest receives a battle vote cast by host
+function handleBattleVoteCast(side, voter) {
+    window._battleVoteData = window._battleVoteData || { votes: {} };
+    window._battleVoteData.votes[voter] = side;
+    const statusEl = document.getElementById('battle-vote-status');
+    if (statusEl) statusEl.innerText = 'Opponent voted. Waiting for yours...';
+    _checkOnlineBattleVotes();
+}
+
 function resolveManual(wins) {
     flashScreen(wins ? '#4d79ff88' : '#ff4d4d88');
     shakeScreen();
@@ -3387,27 +3405,7 @@ function render() {
     document.getElementById('current-player-name').innerText = p.name;
     document.getElementById('current-player-name').style.color = p.color;
 
-    // Multiplayer: show whose turn it is for the guest
-    let mpIndicator = document.getElementById('mp-turn-indicator');
-    if (conn && conn.open) {
-        if (!mpIndicator) {
-            mpIndicator = document.createElement('div');
-            mpIndicator.id = 'mp-turn-indicator';
-            mpIndicator.style.cssText = 'font-size:11px;letter-spacing:2px;font-weight:bold;text-align:center;margin-top:4px;padding:4px 10px;border-radius:6px;';
-            document.getElementById('turn-indicator').after(mpIndicator);
-        }
-        if (isMyTurn()) {
-            mpIndicator.innerText = '⚡ YOUR TURN';
-            mpIndicator.style.color = '#4dff88';
-            mpIndicator.style.background = 'rgba(77,255,136,0.1)';
-        } else {
-            mpIndicator.innerText = '⏳ WAITING FOR OPPONENT...';
-            mpIndicator.style.color = '#888';
-            mpIndicator.style.background = 'rgba(0,0,0,0.3)';
-        }
-    } else if (mpIndicator) {
-        mpIndicator.remove();
-    }
+    // Ability mode badge
     let abModeBadge = document.getElementById('ability-mode-badge');
     if (game.abilityMode && !abModeBadge) {
         abModeBadge = document.createElement('span');
@@ -3439,49 +3437,60 @@ function render() {
         endTurnBtn.innerText = 'END TURN ⏩';
         endTurnBtn.onmouseenter = () => { endTurnBtn.style.color = '#fff'; endTurnBtn.style.borderColor = '#666'; };
         endTurnBtn.onmouseleave = () => { endTurnBtn.style.color = '#555'; endTurnBtn.style.borderColor = '#333'; };
-        endTurnBtn.onclick = () => {
-            if (conn && conn.open && !isMyTurn()) return;
-            game.ap = 1; endAction();
-        };
+        endTurnBtn.onclick = () => { game.ap = 1; endAction(); }; // set to 1 then endAction deducts to 0
         document.getElementById('turn-indicator').parentNode.insertBefore(endTurnBtn, document.getElementById('turn-indicator').nextSibling.nextSibling);
     }
 
     const hDisplay = document.getElementById('hand-display');
     hDisplay.innerHTML = "";
-    p.hand.forEach((u, i) => {
-        const card = document.createElement('div');
-        const isSelected = (game.selection.type === 'hand' && game.selection.idx === i);
-        card.className = `hand-card ${isSelected ? 'active-selection' : ''}`;
-        card.dataset.idx = i;
-        // Show ⚡ badge for awakening, ★ badge only in ability mode for trait abilities
-        const showTipBadge = u.nextForm || (game.abilityMode && u.tip && !u.nextForm);
-        const tipBadge = showTipBadge ? `<div class="card-tip-badge">${u.nextForm ? '⚡' : '★'}</div>` : '';
-        card.innerHTML = `<img src="${u.img}">${tipBadge}<div class="hand-name-tag">${u.name}</div>`;
-        // In hand hover: show awaken tip always, trait tip only in ability mode
-        const handTip = u.nextForm ? (u.tip || '') : (game.abilityMode ? (u.tip || '') : '');
-        card.addEventListener('mouseenter', () => showPreview(u.img, u.name, u.tier || '', handTip));
-        card.addEventListener('mouseleave', hidePreview);
-        
-        card.onclick = (e) => { 
-            e.stopPropagation();
 
-            // If an awakenTarget is locked in, this card is a sacrifice — just toggle highlight
-            if (game.awakenTarget !== null) {
+    // HIDDEN HANDS: In ALL modes, only current player sees their own cards.
+    // Online: determined by isHost/guest index. Local: pass-screen handles it.
+    // After pass-screen is dismissed, show current player's hand.
+    const isOnline = !!(conn && conn.open);
+    // In local modes we always show current player's hand (pass screen already hid it)
+    // In online: host=players[0], guest=players[1]
+    const shouldHide = isOnline && !isMyTurn();
+
+    if (shouldHide) {
+        // Opponent's hand: show face-down cards
+        for (let i = 0; i < p.hand.length; i++) {
+            const card = document.createElement('div');
+            card.className = 'hand-card';
+            card.style.cssText = 'background:linear-gradient(135deg,#0d0d1a,#080810);border:1px solid #1a1a2a;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:default;';
+            card.innerHTML = '🂠';
+            hDisplay.appendChild(card);
+        }
+        const lbl = document.createElement('div');
+        lbl.style.cssText = 'width:100%;text-align:center;font-size:10px;color:#333;letter-spacing:2px;margin-top:6px;';
+        lbl.innerText = `${p.name.toUpperCase()}'S HAND — HIDDEN`;
+        hDisplay.appendChild(lbl);
+    } else {
+        p.hand.forEach((u, i) => {
+            const card = document.createElement('div');
+            const isSelected = (game.selection.type === 'hand' && game.selection.idx === i);
+            card.className = `hand-card ${isSelected ? 'active-selection' : ''}`;
+            card.dataset.idx = i;
+            const showTipBadge = u.nextForm || (game.abilityMode && u.tip && !u.nextForm);
+            const tipBadge = showTipBadge ? `<div class="card-tip-badge">${u.nextForm ? '⚡' : '★'}</div>` : '';
+            card.innerHTML = `<img src="${u.img}">${tipBadge}<div class="hand-name-tag">${u.name}</div>`;
+            const handTip = u.nextForm ? (u.tip || '') : (game.abilityMode ? (u.tip || '') : '');
+            card.addEventListener('mouseenter', () => showPreview(u.img, u.name, u.tier || '', handTip));
+            card.addEventListener('mouseleave', hidePreview);
+            card.onclick = (e) => {
+                e.stopPropagation();
+                if (isOnline && !isMyTurn()) return;
+                if (game.awakenTarget !== null) {
+                    card.classList.toggle('selected-for-trade');
+                    updateTradeButtonState(); updateSpecialUI(); return;
+                }
                 card.classList.toggle('selected-for-trade');
-                updateTradeButtonState();
-                updateSpecialUI();
-                return;
-            }
-
-            // Toggle this card's highlight (multi-select for trading)
-            card.classList.toggle('selected-for-trade');
-            // Update selection to this card (for placement/move/awaken targeting)
-            game.selection = { type: 'hand', idx: i };
-            updateTradeButtonState(); 
-            updateSpecialUI(); 
-        };
-        hDisplay.appendChild(card);
-    });
+                game.selection = { type: 'hand', idx: i };
+                updateTradeButtonState(); updateSpecialUI();
+            };
+            hDisplay.appendChild(card);
+        });
+    }
 
     updateTradeButtonState();
     updateSpecialUI();
@@ -3883,6 +3892,13 @@ function checkElimination() {
 }
 
 function showTurnNotification(player) {
+    // LOCAL mode (not online): show pass-device screen between turns
+    if (!conn || !conn.open) {
+        setTimeout(() => showPassScreen(player.name, player.color), 420);
+        return;
+    }
+
+    // Online: show the standard notification banner
     const existing = document.getElementById('turn-notification');
     if (existing) existing.remove();
 
@@ -4128,15 +4144,19 @@ function confirmChangeVerse() {
 }
 
 function backToMenu() {
-    document.getElementById('win-screen').classList.remove('active');
-    document.getElementById('game-screen').classList.remove('active');
-    document.getElementById('setup').classList.remove('active');
-    document.getElementById('menu').classList.add('active'); 
+    _navHistory = ['menu'];
+    _passScreenActive = false;
+    _hideOnlineOverlay();
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('menu').classList.add('active');
+    if (conn) { try { conn.close(); } catch(e){} conn = null; }
+    if (typeof peer !== 'undefined' && peer) { try { peer.destroy(); } catch(e){} }
+    isHost = false;
 }
 
 function restartGame() {
     document.getElementById('win-screen').classList.remove('active');
-    initGame(); 
+    initGame();
 }
 // Auto-read ?join=CODE from invite link and pre-fill the join box
 (function() {
@@ -4159,5 +4179,69 @@ function restartGame() {
             input.style.borderColor = '#4dff88';
             input.style.boxShadow = '0 0 10px #4dff88';
         }
+    }
+})();
+// ─── Request Vote (menu/verse/endgame) ──────────────────────
+function requestVote(action) {
+    if (!conn || !conn.open) {
+        // Local: simple confirm
+        const msgs = { menu:'Return to menu? Game will be lost.', verse:'Change verse? Game will be lost.', endgame:'End the game for everyone?' };
+        if (confirm(msgs[action] || 'Confirm?')) {
+            if (action === 'endgame' || action === 'menu') backToMenu();
+            else { backToMenu(); setTimeout(() => showSetup('local'), 50); }
+        }
+        return;
+    }
+    // Online: send vote request
+    conn.send({ type:'VOTE_REQUEST', action, requester: isHost ? 'HOST':'GUEST', threshold: action === 'endgame' ? 0.75 : 0.5 });
+    showApToast('VOTE SENT — WAITING FOR RESPONSE');
+}
+
+// ─── Menu canvas particles ──────────────────────────────────
+(function() {
+    function initCanvas() {
+        const canvas = document.getElementById('menu-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let W = canvas.width = canvas.offsetWidth || window.innerWidth;
+        let H = canvas.height = canvas.offsetHeight || window.innerHeight;
+
+        const particles = Array.from({ length: 60 }, () => ({
+            x: Math.random() * W, y: Math.random() * H,
+            r: 0.5 + Math.random() * 1.5,
+            vx: (Math.random() - 0.5) * 0.3,
+            vy: -0.2 - Math.random() * 0.4,
+            alpha: Math.random() * 0.5,
+            hue: 200 + Math.random() * 80,
+        }));
+
+        function draw() {
+            if (!document.getElementById('menu')?.classList.contains('active')) {
+                requestAnimationFrame(draw); return;
+            }
+            ctx.clearRect(0, 0, W, H);
+            particles.forEach(p => {
+                p.x += p.vx; p.y += p.vy;
+                if (p.y < -4) { p.y = H + 4; p.x = Math.random() * W; }
+                if (p.x < -4) p.x = W + 4;
+                if (p.x > W + 4) p.x = -4;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${p.hue},80%,70%,${p.alpha})`;
+                ctx.fill();
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        window.addEventListener('resize', () => {
+            W = canvas.width = canvas.offsetWidth || window.innerWidth;
+            H = canvas.height = canvas.offsetHeight || window.innerHeight;
+        });
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCanvas);
+    } else {
+        initCanvas();
     }
 })();
