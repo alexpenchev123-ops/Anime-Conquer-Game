@@ -5,67 +5,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Anime Conquer</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 <div id="game-container">
 
-    <!-- ═══════════════ MAIN MENU ═══════════════ -->
-    <div id="menu" class="screen active">
-        <div class="menu-bg-particles" id="menu-particles"></div>
-        <div class="menu-content">
-            <div class="menu-subtitle-top">アニメ · CARD CONQUEST · 征服</div>
-            <h1 class="logo">ANIME<br><span>CONQUER</span></h1>
-            <div class="menu-subtitle-bot">Choose your battlefield</div>
+<!-- ══════════════════════════════════════════════════════
+     MAIN MENU
+══════════════════════════════════════════════════════ -->
+<div id="menu" class="screen active">
+    <canvas id="menu-canvas"></canvas>
+    <div class="menu-inner">
+        <div class="menu-eyebrow">アニメ・カードゲーム</div>
+        <h1 class="menu-logo">ANIME<br><em>CONQUER</em></h1>
+        <div class="menu-tagline">征服 · Choose Your Battlefield · 征服</div>
 
-            <div class="menu-section-label">⚔ ONLINE</div>
-            <div class="menu-buttons-group">
-                <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-                <button class="menu-btn menu-btn-primary" onclick="createOnlineGame()">
-                    <span class="menu-btn-icon">🌐</span>
-                    <span class="menu-btn-text">CREATE ROOM</span>
-                    <span class="menu-btn-sub">Host an online game</span>
-                </button>
-                <div class="join-row">
-                    <input type="text" id="join-code" placeholder="ROOM CODE" class="join-input">
-                    <button class="menu-btn menu-btn-secondary join-btn" onclick="joinOnlineGame(document.getElementById('join-code').value.trim().toUpperCase())">
-                        <span>JOIN</span>
-                    </button>
-                </div>
-            </div>
+        <nav class="menu-nav">
+            <button class="mnav-btn mnav-online" onclick="showOnlineMenu()">
+                <span class="mnav-icon">🌐</span>
+                <span class="mnav-label">ONLINE</span>
+                <span class="mnav-desc">Play over the internet</span>
+                <span class="mnav-arrow">›</span>
+            </button>
+            <button class="mnav-btn mnav-local" onclick="showSetup('local')">
+                <span class="mnav-icon">⚔️</span>
+                <span class="mnav-label">LOCAL</span>
+                <span class="mnav-desc">Same screen, decide battles together</span>
+                <span class="mnav-arrow">›</span>
+            </button>
+            <button class="mnav-btn mnav-rules" onclick="showRules()">
+                <span class="mnav-icon">📖</span>
+                <span class="mnav-label">HOW TO PLAY</span>
+                <span class="mnav-desc">Rules, modes and tips</span>
+                <span class="mnav-arrow">›</span>
+            </button>
+        </nav>
+    </div>
+</div>
 
-            <div class="menu-section-label">👥 LOCAL</div>
-            <div class="menu-buttons-group">
-                <button class="menu-btn menu-btn-secondary" onclick="showSetup('local')">
-                    <span class="menu-btn-icon">⚔️</span>
-                    <span class="menu-btn-text">LOCAL MULTIPLAYER</span>
-                    <span class="menu-btn-sub">Same screen · players decide battles</span>
-                </button>
-                <button class="menu-btn menu-btn-secondary" onclick="showSetup('voting')">
-                    <span class="menu-btn-icon">🗳️</span>
-                    <span class="menu-btn-text">VOTING MULTIPLAYER</span>
-                    <span class="menu-btn-sub">Hidden hands · vote who wins · AI tie-break</span>
-                </button>
-            </div>
+<!-- ══════════════════════════════════════════════════════
+     ONLINE SUBMENU
+══════════════════════════════════════════════════════ -->
+<div id="online-menu" class="screen">
+    <div class="submenu-inner">
+        <button class="back-arrow" onclick="goBack('menu')">← BACK</button>
+        <div class="submenu-eyebrow">ONLINE MULTIPLAYER</div>
+        <h2 class="submenu-title">CONNECT</h2>
 
-            <div class="menu-buttons-group" style="margin-top:8px;">
-                <button class="menu-btn menu-btn-ghost" onclick="showRules()">
-                    <span class="menu-btn-icon">📖</span>
-                    <span class="menu-btn-text">HOW TO PLAY</span>
-                </button>
+        <div class="online-section">
+            <div class="online-section-label">CREATE A ROOM</div>
+            <button class="mnav-btn mnav-online" onclick="createOnlineGame('normal')">
+                <span class="mnav-icon">🎮</span>
+                <span class="mnav-label">STANDARD ONLINE</span>
+                <span class="mnav-desc">Auto-resolve battles · hidden hands</span>
+                <span class="mnav-arrow">›</span>
+            </button>
+            <button class="mnav-btn mnav-local" onclick="createOnlineGame('voting')">
+                <span class="mnav-icon">🗳️</span>
+                <span class="mnav-label">VOTING ONLINE</span>
+                <span class="mnav-desc">Both players vote who wins · hidden hands</span>
+                <span class="mnav-arrow">›</span>
+            </button>
+        </div>
+
+        <div class="online-section" style="margin-top:20px;">
+            <div class="online-section-label">JOIN A ROOM</div>
+            <div class="join-row">
+                <input type="text" id="join-code" placeholder="ENTER ROOM CODE" class="join-input" maxlength="8">
+                <button class="join-go-btn" onclick="joinOnlineGame()">JOIN →</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- ═══════════════ SETUP ═══════════════ -->
-    <div id="setup" class="screen">
-        <div class="setup-header">
-            <div class="setup-kanji">征服</div>
-            <h2 class="setup-title">WAR ROOM</h2>
-            <div class="setup-mode-badge" id="setup-mode-badge">LOCAL</div>
-        </div>
-        <div class="setup-box">
-            <label for="verse-select">SELECT UNIVERSE</label>
-            <select id="verse-select" onchange="updateVersePreview(this.value)">
+<!-- ══════════════════════════════════════════════════════
+     SETUP (WAR ROOM)
+══════════════════════════════════════════════════════ -->
+<div id="setup" class="screen">
+    <div class="setup-inner">
+        <button class="back-arrow" id="setup-back-btn" onclick="goBack('menu')">← BACK</button>
+        <div class="setup-eyebrow" id="setup-eyebrow">LOCAL MULTIPLAYER</div>
+        <h2 class="setup-title">WAR ROOM</h2>
+
+        <div class="setup-card">
+            <label>UNIVERSE</label>
+            <select id="verse-select" onchange="updateVersePreview(this.value)" class="setup-select">
                 <option value="Naruto">Naruto Shippuden</option>
                 <option value="OnePiece">One Piece</option>
                 <option value="Bleach">Bleach</option>
@@ -75,169 +99,133 @@
                 <option value="HxH">Hunter x Hunter</option>
                 <option value="FireForce">Fire Force</option>
             </select>
-            <div id="verse-preview-wrap">
+            <div class="verse-preview" id="verse-preview-wrap">
                 <img id="verse-preview-img" src="verses/naruto.jpg" alt="">
                 <div id="verse-preview-label">Naruto Shippuden</div>
             </div>
 
-            <label for="game-mode-select">GAME MODE</label>
-            <select id="game-mode-select">
+            <label>GAME MODE</label>
+            <select id="game-mode-select" class="setup-select">
                 <option value="conquest">⚔️ CONQUEST — Eliminate all opponents</option>
-                <option value="showdown">🏆 SHOWDOWN — Collect then battle all-v-all</option>
-                <option value="ability">⚡ ABILITY MODE — Every character has a unique power</option>
+                <option value="showdown">🏆 SHOWDOWN — Collect then battle</option>
+                <option value="ability">⚡ ABILITY MODE — Unique character powers</option>
             </select>
 
-            <label for="player-count">PLAYER COUNT</label>
-            <select id="player-count" onchange="generateNameInputs()">
+            <label>PLAYERS</label>
+            <select id="player-count" onchange="generateNameInputs()" class="setup-select">
                 <option value="2">2 Players</option>
                 <option value="3">3 Players</option>
                 <option value="4">4 Players</option>
             </select>
             <div id="name-inputs"></div>
-            <button class="start-button" onclick="initGame()">BEGIN CONQUEST</button>
-            <button class="back-btn" onclick="backToMenu()">← BACK</button>
-        </div>
-    </div>
 
-        <div id="game-screen" class="screen">
-            <div class="game-corner-buttons">
-                <button class="corner-btn" onclick="confirmBackToMenu()">⬅ MENU</button>
-                <button class="corner-btn" onclick="confirmChangeVerse()">🔀 CHANGE VERSE</button>
-                <button class="corner-btn" onclick="requestVote('endgame')" style="border-color:#ff4d4d;color:#ff4d4d;">🏳️ END GAME</button>
-            </div>
-            <div class="game-header">
-                <div id="turn-indicator"><span id="current-player-name">---</span>'S TURN</div>
-            </div>
-            <div class="main-layout">
-                <div class="board-column">
-                    <div id="board"></div>
-                    <div id="ap-reference">
-                        <span class="ap-ref-title">AP COSTS</span>
-                        <div class="ap-ref-row"><span class="ap-pip">●</span> Place unit</div>
-                        <div class="ap-ref-row"><span class="ap-pip">●●</span> Attack</div>
-                        <div class="ap-ref-row"><span class="ap-pip">●●</span> Trade</div>
-                        <div class="ap-ref-row"><span class="ap-pip">●</span> Awaken / Evolve</div>
-                        <div class="ap-ref-row"><span class="ap-pip">●</span> Move</div>
-                    </div>
-                    <div id="trade-guide-panel"></div>
-                </div>
-                <div class="ui-panel">
-                    <h3>HAND</h3>
-                    <div id="hand-display"></div>
-                    <button id="trade-btn" onclick="handleTrade()" disabled>TRADE 5 FOR LEGENDARY</button>
-                    <div id="ability-container"></div>
-                    <h3 style="margin:15px 0 8px 0; font-size:13px; color:#888;">BATTLE LOG</h3>
-                    <div id="move-log" style="overflow-y:auto; flex-grow:1; max-height:180px;"></div>
-                </div>
-            </div>
+            <button class="start-btn" onclick="initGame()">⚔ BEGIN CONQUEST</button>
         </div>
     </div>
-    <div id="battle-modal" class="modal">
-        <div class="modal-content">
-            <div class="versus-container">
-                <div id="atk-card"></div>
-                <div class="vs-divider">VS</div>
-                <div id="def-card"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     GAME SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="game-screen" class="screen">
+    <div class="game-corner-buttons">
+        <button class="corner-btn" onclick="confirmBackToMenu()">⬅ MENU</button>
+        <button class="corner-btn" onclick="confirmChangeVerse()">🔀 VERSE</button>
+        <button class="corner-btn corner-btn-red" onclick="requestVote('endgame')">🏳 END</button>
+    </div>
+    <div class="game-header">
+        <div id="turn-indicator"><span id="current-player-name">---</span>'S TURN</div>
+    </div>
+    <div class="main-layout">
+        <div class="board-column">
+            <div id="board"></div>
+            <div id="ap-reference">
+                <span class="ap-ref-title">AP</span>
+                <div class="ap-ref-row"><span class="ap-pip">●</span> Place</div>
+                <div class="ap-ref-row"><span class="ap-pip">●●</span> Attack</div>
+                <div class="ap-ref-row"><span class="ap-pip">●●</span> Trade</div>
+                <div class="ap-ref-row"><span class="ap-pip">●</span> Awaken</div>
+                <div class="ap-ref-row"><span class="ap-pip">●</span> Move</div>
             </div>
-            <div id="special-modal-controls"></div>
-            <div class="modal-controls">
-                <button class="win-btn atk-btn" onclick="resolveManual(true)">ATTACKER WINS</button>
-                <button class="win-btn def-btn" onclick="resolveManual(false)">DEFENDER WINS</button>
-            </div>
+            <div id="trade-guide-panel"></div>
+        </div>
+        <div class="ui-panel">
+            <h3>HAND</h3>
+            <div id="hand-display"></div>
+            <button id="trade-btn" onclick="handleTrade()" disabled>TRADE 5 FOR LEGENDARY</button>
+            <div id="ability-container"></div>
+            <h3 style="margin:12px 0 6px;font-size:12px;color:#555;letter-spacing:2px;">BATTLE LOG</h3>
+            <div id="move-log"></div>
         </div>
     </div>
-    <div id="rules-screen" class="screen" style="overflow-y:auto; padding:40px 20px;">
-        <div style="max-width:700px; width:100%;">
-            <h1 style="color:#4d79ff; letter-spacing:4px; margin-bottom:4px;">HOW TO PLAY</h1>
-            <h3 style="color:#666; margin-bottom:30px; font-weight:normal;">ANIME CONQUER</h3>
-            <div class="rules-section">
-                <h2>🎯 OBJECTIVE</h2>
-                <p>Eliminate all other players by destroying every unit in their hand and on the board. Last player standing wins.</p>
-            </div>
-            <div class="rules-section">
-                <h2>🗺️ THE BOARD</h2>
-                <p>The game is played on a 6×6 grid. Each player starts in a corner (their base). Neutral tiles scale in strength toward the centre:</p>
-                <ul>
-                    <li><b>Outer ring</b> — Common &amp; Rare (tiles bordering the middle ring lean Rare)</li>
-                    <li><b>Middle ring</b> — Epic &amp; Mythic (tiles closest to centre lean Mythic)</li>
-                    <li><b>Centre 4 tiles</b> — Legendary</li>
-                </ul>
-                <p style="color:#aaa;font-size:13px;">💡 The board is reshuffled every game — same zones, different characters every time.</p>
-            </div>
-            <div class="rules-section">
-                <h2>🃏 YOUR HAND</h2>
-                <p>You start with 3 cards. If all your cards (hand + board) are gone, you are eliminated.</p>
-            </div>
-            <div class="rules-section">
-                <h2>⚡ YOUR TURN — 3 ACTION POINTS</h2>
-                <p>Each turn you have <b>3 AP</b> (shown as glowing dots above the board). Spend them how you like:</p>
-                <ul>
-                    <li><b>Place a card</b> — 2 AP · Deploy from hand to your base or owned tile</li>
-                    <li><b>Move a unit</b> — 1 AP · Slide a board unit to an adjacent empty tile</li>
-                    <li><b>Attack</b> — 2 AP · Send a unit against an adjacent enemy</li>
-                    <li><b>Trade</b> — 2 AP · Select cards (yellow glow), click TRADE for a rarer card</li>
-                    <li><b>Awaken / Evolve</b> — 1 AP · Evolve a unit marked with ⚡</li>
-                </ul>
-                <p style="color:#4dff88;font-size:13px;">💡 Example: Move + Move + Move (3×1 AP) OR Place + Move (2+1 AP) in one turn. Click END TURN to skip remaining AP.</p>
-            </div>
-            <div class="rules-section">
-                <h2>⚔️ BATTLE</h2>
-                <p>Both units appear in a battle modal. Players decide the winner — the loser is removed. Attacking a neutral unit claims it for your team.</p>
-            </div>
-            <div class="rules-section">
-                <h2>💱 TRADING</h2>
-                <ul>
-                    <li><b>5 cards</b> → Legendary</li>
-                    <li><b>Naruto / MHA Ultra</b>: 4+1 leg, 2+2 leg, or 3 leg → Ultra</li>
-                    <li><b>Demon Slayer Ultra</b>: 3 legendary → Ultra</li>
-                    <li><b>One Piece Ultra</b>: 2 legendaries or 5 mythics → Ultra</li>
-                    <li><b>One Piece GOD</b>: 1 ultra + 3 legendaries + 1 any → God Tier</li>
-                </ul>
-                <p style="color:#aaa;font-size:13px;">💡 The Trade Guide next to the board shows live pool counts during the game.</p>
-            </div>
-            <div class="rules-section">
-                <h2>✨ AWAKENING</h2>
-                <p>Some units can evolve into stronger forms. Select a unit marked with <b>⚡</b> on the board or in your hand, then click the evolve button that appears. Choose the required sacrifice cards from your hand and confirm.</p>
-                <ul>
-                    <li><b>Naruto</b> — Button says <b>AWAKEN</b>. Shouts <i>"SHINRA TENSEI!"</i> on activation. Chains include: Naruto (Base → Sage → KCM → Six Paths), Sasuke, Madara, Kakashi, Guy, Obito, Minato, Hashirama.</li>
-                    <li><b>One Piece</b> — Button says <b>AWAKEN</b>. Shouts <i>"AWAKENING!"</i>. Chains include: Luffy (5 forms up to Gear 5), Kaido, Big Mom, Blackbeard, Zoro, Sanji, Law, Kid, Katakuri, Sabo, Robin, Doflamingo, and more.</li>
-                    <li><b>Bleach</b> — Button says <b>BANKAI</b>. Shouts <i>"BANKAI!"</i>. Chains include: Ichigo (Shikai → Bankai → Hollow Mask → True Bankai), Byakuya, Zaraki, Urahara, Unohana, Yoruichi, Rukia, Hitsugaya, Grimmjow, Ulquiorra (Segunda Etapa), Aizen, Yhwach, Yamamoto, and more.</li>
-                    <li><b>MHA</b> — Button says <b>AWAKEN</b>. Chains include Plus Ultra evolutions for key heroes.</li>
-                </ul>
-                <p style="color:#4dff88;font-size:13px;">💡 In 2-player games only base forms spawn — evolve them yourself for maximum power.</p>
-            </div>
-            <div class="rules-section">
-                <h2>🏆 SHOWDOWN MODE</h2>
-                <p>Choose <b>Showdown</b> in the game mode selector before starting. The game plays like Conquest — but instead of eliminating each other, players race to claim neutral tiles. Once all neutral tiles on the board are owned by a player, a <b>3-turn countdown</b> begins. After those 3 turns, the <b>SHOWDOWN</b> triggers automatically:</p>
-                <ul>
-                    <li>Every player's board units are displayed in their column</li>
-                    <li>All units fight simultaneously — all vs all</li>
-                    <li>Players look at the rosters and <b>declare the winner</b> based on combined strength</li>
-                    <li>Only units <b>on the board</b> count — hand cards do not fight in the showdown</li>
-                </ul>
-                <p style="color:#aaa;font-size:13px;">💡 Strategy: prioritize claiming tiles over attacking opponents. Stronger tiles = stronger showdown roster.</p>
-            </div>
-            <div class="rules-section">
-                <h2>💡 TIPS</h2>
-                <ul>
-                    <li>Hover cards or tiles to see a large preview</li>
-                    <li>Control the center — legendary tiles are the biggest power spikes</li>
-                    <li>A full hand = more trading power, don't neglect drawing</li>
-                    <li>Awaken at the front line for maximum pressure</li>
-                </ul>
-            </div>
-            <button class="glow-button" onclick="hideRules()" style="margin-top:20px;">← BACK TO MENU</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PASS DEVICE SCREEN (local hidden hands)
+══════════════════════════════════════════════════════ -->
+<div id="pass-screen" class="screen">
+    <div class="pass-inner">
+        <div id="pass-player-name" class="pass-player-name">PLAYER 1</div>
+        <div class="pass-title">YOUR TURN</div>
+        <div class="pass-subtitle">Hand the device to this player</div>
+        <button class="start-btn" onclick="dismissPassScreen()" style="margin-top:32px;max-width:260px;">▶ SHOW MY HAND</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     BATTLE MODAL
+══════════════════════════════════════════════════════ -->
+<div id="battle-modal" class="modal">
+    <div class="modal-content">
+        <div class="versus-container">
+            <div id="atk-card"></div>
+            <div class="vs-divider">VS</div>
+            <div id="def-card"></div>
+        </div>
+        <div id="special-modal-controls"></div>
+        <div class="modal-controls">
+            <button class="win-btn atk-btn" onclick="resolveManual(true)">ATTACKER WINS</button>
+            <button class="win-btn def-btn" onclick="resolveManual(false)">DEFENDER WINS</button>
         </div>
     </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     RULES SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="rules-screen" class="screen rules-bg">
+    <div class="rules-wrap">
+        <button class="back-arrow" onclick="goBack('menu')">← BACK</button>
+        <h1 class="rules-h1">HOW TO PLAY</h1>
+        <h3 class="rules-sub">ANIME CONQUER</h3>
+        <div class="rules-section"><h2>🎯 OBJECTIVE</h2><p>Eliminate all other players by destroying every unit in their hand and on the board. Last player standing wins.</p></div>
+        <div class="rules-section"><h2>🗺️ THE BOARD</h2><p>6×6 grid. Each player starts in a corner. Tiles scale in strength toward the centre:</p><ul><li><b>Outer ring</b> — Common &amp; Rare</li><li><b>Middle ring</b> — Epic &amp; Mythic</li><li><b>Centre 4 tiles</b> — Legendary</li></ul></div>
+        <div class="rules-section"><h2>🃏 YOUR HAND</h2><p>You start with 3 cards. If all your cards (hand + board) are gone, you are eliminated.</p></div>
+        <div class="rules-section"><h2>⚡ 3 ACTION POINTS PER TURN</h2><ul><li><b>Place</b> — 1 AP</li><li><b>Move</b> — 1 AP</li><li><b>Attack</b> — 2 AP</li><li><b>Trade</b> — 2 AP</li><li><b>Awaken</b> — 1 AP</li></ul></div>
+        <div class="rules-section"><h2>⚔️ BATTLE</h2><p>Both units appear in a battle modal. Players decide the winner — the loser is removed.</p></div>
+        <div class="rules-section"><h2>🌐 ONLINE MODES</h2><ul><li><b>Standard</b> — Auto-resolve battles by tier power</li><li><b>Voting</b> — Both players vote who wins; ties go to AI</li></ul><p style="color:#aaa;font-size:13px;">In both online modes, opponent hands are hidden.</p></div>
+        <div class="rules-section"><h2>👥 LOCAL MODE</h2><p>A "Pass Device" screen appears between turns so each player only sees their own hand.</p></div>
+        <div class="rules-section"><h2>💱 TRADING</h2><ul><li><b>5 cards</b> → Legendary</li><li><b>Naruto/MHA Ultra</b>: 4+1 leg, 2+2 leg, or 3 leg</li><li><b>Demon Slayer Ultra</b>: 3 legendary</li><li><b>One Piece Ultra</b>: 2 leg or 5 mythic</li></ul></div>
+        <div class="rules-section"><h2>🏆 SHOWDOWN MODE</h2><p>Race to claim all neutral tiles. A 3-turn countdown then triggers an all-vs-all showdown based on board units.</p></div>
+        <div class="rules-section"><h2>✨ AWAKENING</h2><p>Units marked with ⚡ can evolve. Select the unit, pick sacrifice cards, confirm. In 2-player games only base forms spawn.</p></div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     WIN SCREEN
+══════════════════════════════════════════════════════ -->
 <div id="win-screen" class="screen">
-        <div class="win-content">
-            <h1 id="winner-text">PLAYER 1 WINS!</h1>
-            <div class="win-buttons">
-                <button class="glow-button" onclick="restartGame()">PLAY AGAIN</button>
-                <button class="glow-button" onclick="backToMenu()">BACK TO MENU</button>
-            </div>
+    <div class="win-content">
+        <div class="win-kanji">勝利</div>
+        <h1 id="winner-text">PLAYER 1 WINS!</h1>
+        <div class="win-buttons">
+            <button class="start-btn" onclick="restartGame()">▶ PLAY AGAIN</button>
+            <button class="back-arrow-btn" onclick="backToMenu()">← MAIN MENU</button>
         </div>
     </div>
-    <script src="script.js"></script>
+</div>
+
+</div><!-- #game-container -->
+<script src="script.js"></script>
 </body>
 </html>
