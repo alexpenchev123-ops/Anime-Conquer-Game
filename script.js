@@ -1387,10 +1387,18 @@ function handleIncomingData(data) {
         handleBattleVoteCast(data.side, data.voter);
     }
     if (data.type === 'BATTLE_VOTE') {
-        showBattleVoteModal(data.atkName, data.defName, false);
+        // Guest: host started a battle, open the same cinematic modal
+        // Store attacker/defender indices so guest can call resolveManual correctly
+        window.currentAtkIdx = data.atkIdx;
+        window.currentDefIdx = data.defIdx;
+        window.isNeutralTarget = data.isNeutral;
+        window.isBattleFromHand = false;
+        window._battleVoteData = { atkName: data.atkName, defName: data.defName, votes: {} };
+        // Build a minimal version of the battle UI for guest using names/images
+        _openGuestBattleModal(data);
     }
     if (data.type === 'BATTLE_VOTE_RESULT') {
-        resolveBattleVotes(data.atkVotes, data.defVotes, data.atkName, data.defName);
+        handleBattleVoteResult(data.atkWins);
     }
 }
 
@@ -2542,30 +2550,57 @@ function openCinematicBattle(allies, defAllies, countLabel) {
         </div>`;
 
     } else if (isVotingOnline) {
-        // Voting online: both players vote in the battle modal
-        // Host sees buttons immediately; guest waits for host to trigger
-        window._battleVoteData = { atkName: allies[0].name, defName: defAllies[0].name, votes: {} };
+        // Both players see the same modal with TWO vote buttons — one per player.
+        // Host triggers the modal for guest via BATTLE_VOTE message.
+        // Each device shows its own button highlighted; tracks both votes.
+
+        window._battleVoteData = {
+            atkName: allies[0]?.name || '?',
+            defName: defAllies[0]?.name || '?',
+            votes: {}   // 'host' | 'guest' → 'atk' | 'def'
+        };
+
         if (isHost) {
-            // Send vote request to guest
-            conn.send({ type: 'BATTLE_VOTE', atkName: allies[0].name, defName: defAllies[0].name });
+            // Tell guest to open the same battle modal
+            conn.send({
+                type: 'BATTLE_VOTE',
+                atkName: allies[0]?.name,
+                defName: defAllies[0]?.name
+            });
         }
-        const myLabel = isHost ? 'HOST' : 'GUEST';
+
+        const myRole  = isHost ? 'host'  : 'guest';
+        const oppRole = isHost ? 'guest' : 'host';
+        const myLabel  = isHost ? 'YOU (HOST)'  : 'YOU (GUEST)';
+        const oppLabel = isHost ? 'OPPONENT (GUEST)' : 'OPPONENT (HOST)';
+
         btnHTML = `
-        <div class="cin-vote-area">
+        <div class="cin-vote-area" style="width:100%;max-width:480px;">
             <div class="cin-vote-title">— VOTE WHO WINS —</div>
-            <div class="cin-analysis-text" style="margin-bottom:12px;">${allies[0].name} vs ${defAllies[0].name}</div>
-            <div class="cin-voters">
-                <div class="cin-voter">
-                    <div class="cin-voter-name" style="color:#aaa">${myLabel}'S VOTE</div>
+            <div class="cin-voters" style="gap:14px;">
+
+                <div class="cin-voter" id="voter-${myRole}">
+                    <div class="cin-voter-name" style="color:#4dff88;">${myLabel}</div>
                     <div class="cin-voter-btns">
                         <button class="cin-vote-btn" style="border-color:${col1};color:${col1};"
-                            onclick="castOnlineBattleVote('atk',this)">⚔️ ATTACKER</button>
+                            onclick="castOnlineBattleVote('atk','${myRole}',this)">⚔️ ATK</button>
                         <button class="cin-vote-btn" style="border-color:#ff4d4d;color:#ff4d4d;"
-                            onclick="castOnlineBattleVote('def',this)">🛡️ DEFENDER</button>
+                            onclick="castOnlineBattleVote('def','${myRole}',this)">🛡️ DEF</button>
                     </div>
                 </div>
+
+                <div class="cin-voter" id="voter-${oppRole}">
+                    <div class="cin-voter-name" style="color:#888;">${oppLabel}</div>
+                    <div class="cin-voter-btns">
+                        <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>⚔️ ATK</button>
+                        <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>🛡️ DEF</button>
+                    </div>
+                </div>
+
             </div>
-            <div id="battle-vote-status" class="cin-vote-status">Waiting for both players...</div>
+            <div id="battle-vote-status" class="cin-vote-status" style="margin-top:14px;">
+                Waiting for both players to vote...
+            </div>
         </div>`;
 
     } else {
@@ -2735,7 +2770,97 @@ function showBattleModal(atkIdx, defIdx) {
             if (neighbor && neighbor.owner === defenderOwner && neighbor.unit) defAllies.push(neighbor.unit);
         });
     }
+
+    // Voting online: send full battle data to guest so they see the same modal
+    if (conn && conn.open && game.votingMode) {
+        window._battleVoteData = { votes: {} };
+        conn.send({
+            type: 'BATTLE_VOTE',
+            atkIdx, defIdx,
+            isNeutral: window.isNeutralTarget,
+            atkName: allies[0]?.name,
+            defName: defAllies[0]?.name,
+            atkImg:  allies[0]?.img,
+            defImg:  defAllies[0]?.img,
+            atkTier: allies[0]?.tier,
+            defTier: defAllies[0]?.tier,
+            countLabel: `${allies.length}v${defAllies.length}`
+        });
+    }
+
     openCinematicBattle(allies, defAllies, `${allies.length}v${defAllies.length}`);
+}
+
+// Guest opens battle modal with the data sent by host
+function _openGuestBattleModal(data) {
+    const [col1, col2, clashWord] = getBattleTheme();
+    const modal = document.getElementById('battle-modal');
+    const content = modal.querySelector('.modal-content');
+    content.style.cssText = 'background:transparent;border:none;padding:0;width:100%;max-width:900px;';
+
+    // Build attacker card
+    const atkCardHTML = `<div class="cin-card slide-in-left">
+        <div class="cin-card-img-wrap" style="--c1:${col1}">
+            <img class="cin-card-img" src="${data.atkImg || ''}">
+            <div class="cin-card-glow"></div>
+        </div>
+        <div class="cin-card-name">${data.atkName || '?'}</div>
+    </div>`;
+
+    const defCardHTML = `<div class="cin-card slide-in-right">
+        <div class="cin-card-img-wrap" style="--c1:#ff4d4d">
+            <img class="cin-card-img" src="${data.defImg || ''}">
+            <div class="cin-card-glow"></div>
+        </div>
+        <div class="cin-card-name">${data.defName || '?'}</div>
+    </div>`;
+
+    const vsHTML = `<div class="cin-vs-wrap">
+        <div class="cin-vs" style="color:${col1};text-shadow:0 0 30px ${col1},0 0 60px ${col2};">VS</div>
+        <div class="cin-count" style="border-color:${col1};color:${col1};">${data.countLabel || '1v1'}</div>
+        <div class="cin-clash" style="color:${col2};">${clashWord}</div>
+    </div>`;
+
+    // Vote buttons — guest is always 'guest' role
+    const btnHTML = `
+    <div class="cin-vote-area" style="width:100%;max-width:480px;">
+        <div class="cin-vote-title">— VOTE WHO WINS —</div>
+        <div class="cin-voters" style="gap:14px;">
+            <div class="cin-voter" id="voter-guest">
+                <div class="cin-voter-name" style="color:#4dff88;">YOU (GUEST)</div>
+                <div class="cin-voter-btns">
+                    <button class="cin-vote-btn" style="border-color:${col1};color:${col1};"
+                        onclick="castOnlineBattleVote('atk','guest',this)">⚔️ ATK</button>
+                    <button class="cin-vote-btn" style="border-color:#ff4d4d;color:#ff4d4d;"
+                        onclick="castOnlineBattleVote('def','guest',this)">🛡️ DEF</button>
+                </div>
+            </div>
+            <div class="cin-voter" id="voter-host">
+                <div class="cin-voter-name" style="color:#888;">OPPONENT (HOST)</div>
+                <div class="cin-voter-btns">
+                    <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>⚔️ ATK</button>
+                    <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>🛡️ DEF</button>
+                </div>
+            </div>
+        </div>
+        <div id="battle-vote-status" class="cin-vote-status" style="margin-top:14px;">
+            Waiting for both players to vote...
+        </div>
+    </div>`;
+
+    content.innerHTML = `
+        <div class="cin-arena" style="--c1:${col1};--c2:${col2};">
+            <div class="cin-bg-glow" style="background:radial-gradient(ellipse at 30% 50%,${col1}22 0%,transparent 60%),radial-gradient(ellipse at 70% 50%,${col2}22 0%,transparent 60%);"></div>
+            <div class="cin-combatants">
+                <div class="cin-side cin-atk">${atkCardHTML}</div>
+                ${vsHTML}
+                <div class="cin-side cin-def">${defCardHTML}</div>
+            </div>
+            ${btnHTML}
+        </div>`;
+
+    modal.style.display = 'flex';
+    setTimeout(() => { flashScreen(col1 + '88'); shakeScreen(); }, 350);
 }
 
 // =============================================
@@ -3251,50 +3376,135 @@ function clearAbilityPending() {
 }
 
 // ─── Online voting battle functions ──────────────────────────
-function castOnlineBattleVote(side, btn) {
-    btn.closest('.cin-voter-btns').querySelectorAll('.cin-vote-btn').forEach(b => {
-        b.disabled = true; b.style.opacity = '0.4';
-    });
-    btn.style.opacity = '1';
+// Called when a player clicks their vote button in the voting modal
+function castOnlineBattleVote(side, voterRole, btn) {
+    // Lock this player's buttons
+    const voterDiv = document.getElementById(`voter-${voterRole}`);
+    if (voterDiv) {
+        voterDiv.querySelectorAll('.cin-vote-btn').forEach(b => {
+            b.disabled = true; b.classList.add('voted');
+        });
+        if (btn) { btn.classList.add('selected'); btn.style.opacity = '1'; }
+        // Show visual checkmark
+        const nameEl = voterDiv.querySelector('.cin-voter-name');
+        if (nameEl) nameEl.innerText += side === 'atk' ? ' ✓ ATK' : ' ✓ DEF';
+    }
+
+    // Record vote locally
     window._battleVoteData = window._battleVoteData || { votes: {} };
-    const myRole = isHost ? 'host' : 'guest';
-    window._battleVoteData.votes[myRole] = side;
-    const statusEl = document.getElementById('battle-vote-status');
-    if (statusEl) statusEl.innerText = 'Your vote recorded. Waiting for opponent...';
-    if (conn && conn.open) conn.send({ type: 'BATTLE_VOTE_CAST', side, voter: myRole });
+    window._battleVoteData.votes[voterRole] = side;
+
+    // Send to opponent
+    if (conn && conn.open) {
+        conn.send({ type: 'BATTLE_VOTE_CAST', side, voter: voterRole });
+    }
+
     _checkOnlineBattleVotes();
 }
 
 function _checkOnlineBattleVotes() {
     const votes = window._battleVoteData?.votes || {};
-    if (!votes.host || !votes.guest) return;
+    if (!votes.host || !votes.guest) {
+        // Update status to show waiting
+        const statusEl = document.getElementById('battle-vote-status');
+        const voted = Object.keys(votes).length;
+        if (statusEl) statusEl.innerText = `Votes in: ${voted}/2 — waiting...`;
+        return;
+    }
+
+    // Both voted — resolve
     const atkV = Object.values(votes).filter(v => v === 'atk').length;
     const defV = Object.values(votes).filter(v => v === 'def').length;
-    if (isHost) {
-        const statusEl = document.getElementById('battle-vote-status');
-        if (atkV !== defV) {
-            const atkWins = atkV > defV;
-            if (statusEl) { statusEl.style.color = atkWins?'#4dff88':'#ff4d4d'; statusEl.style.fontWeight='900'; statusEl.innerText = atkWins?'⚔️ ATTACKER WINS!':'🛡️ DEFENDER WINS!'; }
-            setTimeout(() => resolveManual(atkWins), 1000);
-        } else {
-            if (statusEl) statusEl.innerText = '⚖️ TIE — decided by power score';
-            const aU = game.grid[window.currentAtkIdx]?.unit;
-            const dU = game.grid[window.currentDefIdx]?.unit;
-            setTimeout(() => resolveManual(unitScore(aU||{}) >= unitScore(dU||{})), 1200);
+    const statusEl = document.getElementById('battle-vote-status');
+
+    if (atkV !== defV) {
+        const atkWins = atkV > defV;
+        if (statusEl) {
+            statusEl.style.color = atkWins ? '#4dff88' : '#ff4d4d';
+            statusEl.style.fontWeight = '900';
+            statusEl.style.fontSize = '15px';
+            statusEl.innerText = atkWins ? '⚔️ ATTACKER WINS!' : '🛡️ DEFENDER WINS!';
         }
+        // Both devices resolve — host drives the game state update and syncs
+        setTimeout(() => {
+            resolveManual(atkWins);
+            if (isHost && conn && conn.open) {
+                conn.send({ type: 'BATTLE_VOTE_RESULT', atkWins });
+            }
+        }, 1200);
+    } else {
+        // Tie — power score decides
+        const aU = game.grid[window.currentAtkIdx]?.unit;
+        const dU = game.grid[window.currentDefIdx]?.unit;
+        const atkWins = unitScore(aU || {}) >= unitScore(dU || {});
+        if (statusEl) {
+            statusEl.style.color = '#ffcc00';
+            statusEl.innerText = `⚖️ TIE — decided by power (${unitScore(aU||{})} vs ${unitScore(dU||{})})`;
+        }
+        setTimeout(() => {
+            resolveManual(atkWins);
+            if (isHost && conn && conn.open) {
+                conn.send({ type: 'BATTLE_VOTE_RESULT', atkWins });
+            }
+        }, 1500);
     }
 }
 
-// Guest receives a battle vote cast by host
+// Received opponent's vote — update their slot in the modal and check if both voted
 function handleBattleVoteCast(side, voter) {
     window._battleVoteData = window._battleVoteData || { votes: {} };
     window._battleVoteData.votes[voter] = side;
-    const statusEl = document.getElementById('battle-vote-status');
-    if (statusEl) statusEl.innerText = 'Opponent voted. Waiting for yours...';
+
+    // Update the opponent's voter panel to show they voted
+    const voterDiv = document.getElementById(`voter-${voter}`);
+    if (voterDiv) {
+        voterDiv.querySelectorAll('.cin-vote-btn').forEach(b => {
+            b.disabled = true; b.classList.add('voted');
+        });
+        // Highlight their chosen button
+        const btns = voterDiv.querySelectorAll('.cin-vote-btn');
+        if (side === 'atk' && btns[0]) { btns[0].classList.add('selected'); btns[0].style.opacity = '1'; }
+        if (side === 'def' && btns[1]) { btns[1].classList.add('selected'); btns[1].style.opacity = '1'; }
+        const nameEl = voterDiv.querySelector('.cin-voter-name');
+        if (nameEl) nameEl.innerText += side === 'atk' ? ' ✓ ATK' : ' ✓ DEF';
+    }
+
     _checkOnlineBattleVotes();
 }
 
+// Guest receives BATTLE_VOTE_RESULT from host when both have voted (fallback sync)
+function handleBattleVoteResult(atkWins) {
+    // Guest: host has resolved the game state and will sync via MOVE.
+    // We just need to close the modal on guest's side.
+    const modal = document.getElementById('battle-modal');
+    if (modal) {
+        const statusEl = document.getElementById('battle-vote-status');
+        if (statusEl) {
+            statusEl.style.color = atkWins ? '#4dff88' : '#ff4d4d';
+            statusEl.style.fontWeight = '900';
+            statusEl.innerText = atkWins ? '⚔️ ATTACKER WINS!' : '🛡️ DEFENDER WINS!';
+        }
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.querySelector('.modal-content').style.cssText = '';
+        }, 1000);
+    }
+}
+
 function resolveManual(wins) {
+    // Voting online: guest does not change game state — host resolves and syncs via MOVE
+    if (conn && conn.open && game.votingMode && !isHost) {
+        // Just close the modal on guest side; state update comes via MOVE sync
+        const modal = document.getElementById('battle-modal');
+        if (modal) {
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.querySelector('.modal-content').style.cssText = '';
+            }, 400);
+        }
+        return;
+    }
+
     flashScreen(wins ? '#4d79ff88' : '#ff4d4d88');
     shakeScreen();
 
