@@ -1191,6 +1191,8 @@ let game = {
     shieldedUnits: {},
     reviveTracked: {},
     turnCount: 0,
+    mySeatIndex: 0,
+    votingMode: false,
     showdownTurnsLeft: null,
     showdownActive: false
 };
@@ -1218,45 +1220,54 @@ let peer;
 let conn;
 let isHost = false;
 
+function isMyTurn() {
+    if (!conn || !conn.open) return true;
+    const myIdx = (typeof game.mySeatIndex === 'number') ? game.mySeatIndex : (isHost ? 0 : 1);
+    return game.currentTurn === myIdx;
+}
+
 function createOnlineGame(onlineMode) {
     isHost = true;
     game.votingMode = (onlineMode === 'voting');
+    window._guestName = 'Player 2';
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     const modeLabel = game.votingMode ? '🗳️ VOTING ONLINE' : '🌐 STANDARD ONLINE';
 
+    // HOST also enters their name here
     _showOnlineOverlay(`
         <button class="back-arrow" onclick="cancelOnlineSetup()">← CANCEL</button>
         <div class="submenu-eyebrow">${modeLabel}</div>
         <h2 class="submenu-title">YOUR ROOM</h2>
-        <div style="text-align:center;padding:8px 0 18px;">
-            <div style="font-size:10px;color:#333;letter-spacing:4px;margin-bottom:10px;">ROOM CODE</div>
-            <div style="font-size:52px;font-weight:900;letter-spacing:10px;color:#4dff88;
+        <div style="text-align:center;padding:6px 0 14px;">
+            <div style="font-size:10px;color:#333;letter-spacing:4px;margin-bottom:8px;">ROOM CODE</div>
+            <div style="font-size:48px;font-weight:900;letter-spacing:10px;color:#4dff88;
                 text-shadow:0 0 24px #4dff8866;font-family:'Arial Black',sans-serif;">${roomCode}</div>
-            <div style="font-size:10px;color:#222;margin-top:8px;letter-spacing:2px;">Share with your friend</div>
         </div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;">
-            <button class="start-btn" style="font-size:11px;padding:10px 18px;letter-spacing:1px;"
-                onclick="navigator.clipboard.writeText('${roomCode}').then(()=>{this.innerText='✅ COPIED!';setTimeout(()=>this.innerText='📋 COPY CODE',1500)})">
-                📋 COPY CODE</button>
-            <button class="start-btn" style="font-size:11px;padding:10px 18px;letter-spacing:1px;background:linear-gradient(135deg,#1a3a5c,#2a5080);"
-                onclick="const l=location.href.split('?')[0]+'?join=${roomCode}';navigator.clipboard.writeText(l).then(()=>{this.innerText='✅ LINK COPIED!';setTimeout(()=>this.innerText='🔗 COPY LINK',1500)})">
-                🔗 COPY INVITE LINK</button>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;">
+            <button class="start-btn" style="font-size:11px;padding:9px 16px;"
+                onclick="navigator.clipboard.writeText('${roomCode}').then(()=>{this.innerText='✅ COPIED!';setTimeout(()=>this.innerText='📋 CODE',1500)})">📋 COPY CODE</button>
+            <button class="start-btn" style="font-size:11px;padding:9px 16px;background:linear-gradient(135deg,#1a3a5c,#2a5080);"
+                onclick="const l=location.href.split('?')[0]+'?join=${roomCode}';navigator.clipboard.writeText(l).then(()=>{this.innerText='✅ COPIED!';setTimeout(()=>this.innerText='🔗 LINK',1500)})">🔗 COPY LINK</button>
         </div>
-        <div id="mp-status" style="text-align:center;font-size:12px;color:#444;letter-spacing:2px;">
+        <div style="margin-bottom:12px;">
+            <label style="font-size:9px;letter-spacing:3px;color:#444;display:block;margin-bottom:6px;">YOUR NAME (HOST)</label>
+            <input type="text" id="host-name-input" placeholder="YOUR NAME"
+                class="join-input" maxlength="20" value="Player 1">
+        </div>
+        <div id="mp-status" style="text-align:center;font-size:12px;color:#444;letter-spacing:2px;margin-bottom:8px;">
             ⏳ WAITING FOR PLAYER 2...
         </div>
+        <div id="guest-name-display" style="text-align:center;font-size:11px;color:#333;letter-spacing:2px;"></div>
     `);
 
     peer = new Peer(roomCode);
     peer.on('error', err => { const s=document.getElementById('mp-status'); if(s) s.innerText='❌ '+err.message; });
-    peer.on('open', () => { const s=document.getElementById('mp-status'); if(s) s.innerText='⏳ WAITING FOR PLAYER 2...'; });
     peer.on('connection', connection => {
         conn = connection;
         conn.on('open', () => {
             const s=document.getElementById('mp-status');
-            if(s) s.innerText='✅ PLAYER 2 CONNECTED! Setting up...';
+            if(s) s.innerText='✅ PLAYER 2 CONNECTED — Waiting for their name...';
             conn.send({ type:'SET_MODE', votingMode: game.votingMode });
-            setTimeout(() => { _hideOnlineOverlay(); showSetup(game.votingMode ? 'voting' : 'normal'); }, 800);
         });
         conn.on('data', handleIncomingData);
         conn.on('error', err => console.error('conn error', err));
@@ -1320,13 +1331,21 @@ function cancelOnlineSetup() {
 
 function handleIncomingData(data) {
     if (data.type === 'SET_MODE') {
+        // Guest: host has set mode. Show a "waiting" screen so only host configures game.
         game.votingMode = data.votingMode;
         _hideOnlineOverlay();
-        showSetup(data.votingMode ? 'voting' : 'normal');
+        _showGuestWaitingScreen();
+    }
+    if (data.type === 'GUEST_NAME_ACK') {
+        // Guest: host acknowledged our name, now truly waiting
+        const el = document.getElementById('guest-status');
+        if (el) el.innerText = '✅ NAME SET — WAITING FOR HOST TO START...';
     }
     if (data.type === 'START_GAME') {
         game = data.gameState;
+        game.mySeatIndex = data.guestSeatIndex; // which players[] index is the guest
         _navHistory = ['menu', 'game-screen'];
+        _hideOnlineOverlay();
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('game-screen').classList.add('active');
         selectedVerse = data.verse;
@@ -1335,6 +1354,22 @@ function handleIncomingData(data) {
     if (data.type === 'MOVE') {
         game = data.gameState;
         render();
+    }
+    if (data.type === 'GUEST_NAME') {
+        // Host: guest sent their name
+        window._guestName = data.name;
+        // Update the overlay display
+        const el = document.getElementById('guest-name-display');
+        if (el) { el.innerText = `Guest: ${data.name}`; el.style.color = '#4dff88'; }
+        // Update setup screen if it's showing
+        const guestStatus = document.getElementById('guest-name-status');
+        if (guestStatus) { guestStatus.innerText = data.name; guestStatus.style.color = '#4dff88'; }
+        const mpStatus = document.getElementById('mp-status');
+        if (mpStatus) mpStatus.innerText = '✅ BOTH PLAYERS READY — Configure game and start!';
+        conn.send({ type: 'GUEST_NAME_ACK' });
+        // Auto-navigate host to setup
+        _hideOnlineOverlay();
+        showSetup(game.votingMode ? 'voting' : 'normal');
     }
     if (data.type === 'VOTE_REQUEST') {
         const totalPlayers = game.players.filter(p => !p.eliminated).length;
@@ -1359,9 +1394,45 @@ function handleIncomingData(data) {
     }
 }
 
+// Guest waiting screen — just name input, everything else host controls
+function _showGuestWaitingScreen() {
+    _showOnlineOverlay(`
+        <div class="submenu-eyebrow">CONNECTED AS GUEST</div>
+        <h2 class="submenu-title">ENTER YOUR NAME</h2>
+        <div style="margin-bottom:20px;">
+            <input type="text" id="guest-name-input" placeholder="YOUR NAME"
+                class="join-input" maxlength="20"
+                style="font-size:16px;letter-spacing:2px;width:100%;margin-bottom:12px;">
+            <button class="start-btn" onclick="_submitGuestName()">✓ CONFIRM NAME</button>
+        </div>
+        <div id="guest-status" style="text-align:center;font-size:11px;color:#444;letter-spacing:2px;margin-top:12px;">
+            Enter your name then wait for the host to start.
+        </div>
+    `);
+}
+
+function _submitGuestName() {
+    const name = document.getElementById('guest-name-input')?.value.trim() || 'Player 2';
+    window._myGuestName = name;
+    conn.send({ type: 'GUEST_NAME', name });
+    const el = document.getElementById('guest-status');
+    if (el) el.innerText = '⏳ WAITING FOR HOST TO START...';
+    document.getElementById('guest-name-input').disabled = true;
+}
+
 function syncGameToGuest() {
     if (conn && conn.open) {
-        conn.send({ type: 'START_GAME', gameState: game, verse: selectedVerse });
+        // After shuffle, find which index has the guest's name
+        const guestName = window._guestName || 'Player 2';
+        const guestSeatIndex = game.players.findIndex(p => p.name === guestName);
+        // Host seat is the other one
+        game.mySeatIndex = guestSeatIndex === 0 ? 1 : 0;
+        conn.send({
+            type: 'START_GAME',
+            gameState: game,
+            verse: selectedVerse,
+            guestSeatIndex: guestSeatIndex >= 0 ? guestSeatIndex : 1
+        });
     }
 }
 let _navHistory = ['menu'];
@@ -1473,26 +1544,65 @@ function updateVersePreview(verse) {
 
 function generateNameInputs() {
     const container = document.getElementById('name-inputs');
-    const count = parseInt(document.getElementById('player-count').value);
-    container.innerHTML = "";
-    for (let i = 0; i < count; i++) {
-        container.innerHTML += `<input type="text" id="p-name-${i}" placeholder="Player ${i+1}" class="setup-input">`;
+    const isOnlineGame = !!(conn && conn.open);
+    if (!container) return;
+
+    if (isOnlineGame) {
+        // Online: show guest name status, host name was entered in overlay
+        const guestName = window._guestName || '';
+        container.innerHTML = `
+            <div style="padding:8px 0;font-size:11px;color:#555;letter-spacing:1px;">
+                🌐 Online game — 2 players only
+            </div>
+            <div id="online-player-names" style="font-size:12px;color:#666;letter-spacing:1px;">
+                <div>Host: <span style="color:#ccc;">${document.getElementById('host-name-input')?.value || 'You'}</span></div>
+                <div>Guest: <span id="guest-name-status" style="color:${guestName ? '#4dff88' : '#ff4d4d'};">${guestName || '⏳ Waiting for guest name...'}</span></div>
+            </div>
+        `;
+        // Hide player count selector when online
+        const pcLabel = document.getElementById('player-count')?.closest('div') || document.getElementById('player-count')?.parentElement;
+        const pc = document.getElementById('player-count');
+        if (pc) pc.style.display = 'none';
+        const labels = document.querySelectorAll('#setup label');
+        labels.forEach(l => { if (l.htmlFor === 'player-count') l.style.display = 'none'; });
+    } else {
+        const count = parseInt(document.getElementById('player-count').value);
+        container.innerHTML = "";
+        for (let i = 0; i < count; i++) {
+            container.innerHTML += `<input type="text" id="p-name-${i}" placeholder="Player ${i+1}" class="setup-input">`;
+        }
+        // Restore player count if it was hidden
+        const pc = document.getElementById('player-count');
+        if (pc) pc.style.display = '';
+        const labels = document.querySelectorAll('#setup label');
+        labels.forEach(l => { if (l.htmlFor === 'player-count') l.style.display = ''; });
     }
 }
 
 function initGame() {
+    const isOnlineGame = !!(conn && conn.open);
+
+    // Online: validate guest name arrived
+    if (isOnlineGame && (!window._guestName || window._guestName === '')) {
+        showApToast('WAITING FOR GUEST NAME...');
+        return;
+    }
+
     // 1. Get Setup Data
     selectedVerse = document.getElementById('verse-select').value;
     game.mode = document.getElementById('game-mode-select')?.value || 'conquest';
     game.abilityMode = (game.mode === 'ability');
-    if (game.abilityMode) game.mode = 'conquest'; // ability mode uses conquest rules + abilities
+    if (game.abilityMode) game.mode = 'conquest';
     game.showdownTurnsLeft = null;
     game.showdownActive = false;
     game.frozenUnits = {};
     game.turnCount = 0;
     game.shieldedUnits = {};
     game.reviveTracked = {};
-    const count = parseInt(document.getElementById('player-count').value);
+    game.mySeatIndex = 0; // host is always index 0 before shuffle
+
+    // Online: always 2 players. Local: read from selector.
+    const count = isOnlineGame ? 2 : parseInt(document.getElementById('player-count').value);
     
     // 2. Initialize Pools — shuffle each tier so board placement is fully random every game
     const verseData = animeDB[selectedVerse];
@@ -1553,9 +1663,21 @@ function initGame() {
     game.players = [];
 
     for (let i = 0; i < count; i++) {
-        const nameInput = document.getElementById(`p-name-${i}`);
+        let playerName;
+        if (isOnlineGame) {
+            if (i === 0) {
+                // Host name from the host-name-input in the overlay
+                playerName = document.getElementById('host-name-input')?.value.trim() || 'Player 1';
+            } else {
+                // Guest name received via GUEST_NAME message
+                playerName = window._guestName || 'Player 2';
+            }
+        } else {
+            const nameInput = document.getElementById(`p-name-${i}`);
+            playerName = nameInput ? nameInput.value.trim() || `Player ${i+1}` : `Player ${i+1}`;
+        }
         game.players.push({
-            name: nameInput ? nameInput.value || `Player ${i+1}` : `Player ${i+1}`,
+            name: playerName,
             color: colors[i],
             hand: [],
             baseIdx: corners[i],
@@ -1637,22 +1759,27 @@ function initGame() {
         }
     }
 
-    // 4b. Randomize turn order — shuffle players so first turn isn't always Player 1
+    // 4b. Randomize turn order
+    const hostName = game.players[0]?.name; // host is always created at index 0
     for (let k = game.players.length - 1; k > 0; k--) {
         const j = Math.floor(Math.random() * (k + 1));
         [game.players[k], game.players[j]] = [game.players[j], game.players[k]];
     }
-    // Re-sync baseIdx after shuffle (each player keeps their assigned corner)
-    // Note: corners are already baked into the grid by color, player objects just need
-    // their baseIdx kept consistent — no re-sync needed since grid uses owner color not index.
+    // After shuffle: find where the host player ended up — that's mySeatIndex for host
+    if (conn && conn.open) {
+        game.mySeatIndex = game.players.findIndex(p => p.name === hostName);
+        if (game.mySeatIndex === -1) game.mySeatIndex = 0;
+    }
 
     // 5. Start Game
     game.currentTurn = 0;
     game.ap = 3;
-    
-    // Sync if online
+
+    // Online: sync to guest FIRST (before showing game screen on host)
     if (isHost && conn && conn.open) {
         syncGameToGuest();
+        // Hide overlay and show game for host
+        _hideOnlineOverlay();
     }
 
     // Switch to game screen
@@ -1662,10 +1789,13 @@ function initGame() {
 
     render();
 
-    // In local mode show pass screen for first player; online just render
+    // Local only: show pass screen for first player
     if (!conn || !conn.open) {
         const firstPlayer = game.players[game.currentTurn];
         setTimeout(() => showPassScreen(firstPlayer.name, firstPlayer.color), 300);
+    } else {
+        // Online: show turn notification
+        showTurnNotification(game.players[game.currentTurn]);
     }
 }
 
