@@ -57,9 +57,9 @@ const animeDB = {
             { name: "Genma", img: "naruto2/genma.jpg" }, { name: "Torune", img: "naruto2/torume.jpg" },
             { name: "Foo", img: "naruto2/fu.jpg" }, { name: "Dosu Kinuta", img: "naruto2/dosu.jpg" },
             { name: "Mizuki", img: "naruto2/mizuki.jpg" }, { name: "Dan Kato", img: "naruto2/dan.jpg" },
-            { name: "Tayuya", img: "naruto2/tayuya.jpg" }, { name: "Karui", img: "naruto2/karui.jpg" },
+            { name: "Tayuya", img: "naruto2/Tayuya.jpg" }, { name: "Karui", img: "naruto2/karui.jpg" },
             { name: "Shikaku", img: "naruto2/shikaku.jpg" }, { name: "Sakon/Ukon", img: "naruto2/akon and ukon.jpg" },
-            { name: "Kidomaru", img: "naruto2/kidomaru.jpg" }, { name: "Jirobo", img: "naruto2/jirobo.jpg" },
+            { name: "Kidomaru", img: "naruto2/kidomaru.jpg" }, { name: "Jirobo", img: "naruto2/Jirobo.jpg" },
             { name: "Omoi", img: "naruto2/omoi.jpg" }, { name: "Kimmimaro", img: "naruto2/kimmimaro.jpg" },
             { name: "Inoichi", img: "naruto2/inoichi.jpg" }, { name: "Zaku", img: "naruto2/zaku.jpg" }, 
             { name: "Hiashi Hyuga", img: "naruto2/hyuga.jpg" }, { name: "Mifune", img: "naruto2/mifune.jpg" }
@@ -234,7 +234,7 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
         { name: "Jabra", img: "op1/jabra.jpg" },
         { name: "Kumadori", img: "op1/Kumadori.jpg" },
         { name: "Blueno", img: "op1/blueno.jpg" },
-        { name: "Kalifa", img: "op1/kalifa.jpg" },
+        { name: "Kalifa", img: "op1/Kalifa.jpg" },
         { name: "Fisher Tiger", img: "op1/fishertiger.jpg" },
         { name: "Bege", img: "op1/bege.jpg" },
         { name: "Apoo", img: "op1/Apoo.jpg" },
@@ -1352,8 +1352,21 @@ function handleIncomingData(data) {
         render();
     }
     if (data.type === 'MOVE') {
+        const prevTurn = game.currentTurn;
         game = data.gameState;
-        render();
+        // Don't re-render if a voting battle modal is currently open — it would close it.
+        // Exception: if the turn changed (battle resolved + turn advanced), always render.
+        const battleModal = document.getElementById('battle-modal');
+        const battleIsOpen = battleModal && battleModal.style.display === 'flex';
+        const turnChanged = game.currentTurn !== prevTurn;
+        if (!battleIsOpen || turnChanged) {
+            if (battleIsOpen && turnChanged) {
+                // Close battle modal before re-rendering
+                battleModal.style.display = 'none';
+                battleModal.querySelector('.modal-content').style.cssText = '';
+            }
+            render();
+        }
     }
     if (data.type === 'GUEST_NAME') {
         // Host: guest sent their name
@@ -1637,31 +1650,18 @@ function initGame() {
 
     // 2 PLAYERS: Strip ALL evolved forms — players start from base and awaken themselves.
     // 3-4 PLAYERS: Keep evolved forms in pool so they can randomly appear on the board.
-    //              They still go into evolvedForms so handleAwaken can find them.
+    // Strip ALL evolved forms from pools regardless of player count.
+    // Evolved forms ONLY appear via awakening — never spawn on board or in starting hand.
+    // This prevents duplicates (base + evolved of same character both appearing).
     game.evolvedForms = {};
     for (const tier in game.pools) {
         const kept = [], removed = [];
         for (const card of game.pools[tier]) {
             (evolvedNames.has(card.name) ? removed : kept).push(card);
         }
-        if (count === 2) {
-            // 2-player: fully strip all evolved forms from pool
-            game.pools[tier] = kept;
-            for (const card of removed) {
-                game.evolvedForms[card.name] = { ...card, tier };
-            }
-        } else {
-            // 3-4 player: keep evolved forms in pool (they appear randomly on board)
-            // but also register them in evolvedForms so awakening still works
-            game.pools[tier] = [...kept, ...removed]; // keep all, re-shuffle
-            for (const card of removed) {
-                game.evolvedForms[card.name] = { ...card, tier };
-            }
-            // Re-shuffle this tier
-            for (let k = game.pools[tier].length - 1; k > 0; k--) {
-                const j = Math.floor(Math.random() * (k + 1));
-                [game.pools[tier][k], game.pools[tier][j]] = [game.pools[tier][j], game.pools[tier][k]];
-            }
+        game.pools[tier] = kept;
+        for (const card of removed) {
+            game.evolvedForms[card.name] = { ...card, tier };
         }
     }
 
@@ -2771,57 +2771,63 @@ function showBattleModal(atkIdx, defIdx) {
         });
     }
 
-    // Voting online: send full battle data to guest so they see the same modal
+    // Voting online: sync current game state FIRST so guest has latest grid,
+    // THEN send BATTLE_VOTE so guest reads correct tile data when building modal
     if (conn && conn.open && game.votingMode) {
         window._battleVoteData = { votes: {} };
-        conn.send({
-            type: 'BATTLE_VOTE',
-            atkIdx, defIdx,
-            isNeutral: window.isNeutralTarget,
-            atkName: allies[0]?.name,
-            defName: defAllies[0]?.name,
-            atkImg:  allies[0]?.img,
-            defImg:  defAllies[0]?.img,
-            atkTier: allies[0]?.tier,
-            defTier: defAllies[0]?.tier,
-            countLabel: `${allies.length}v${defAllies.length}`
-        });
+        // Sync game state first
+        conn.send({ type: 'MOVE', gameState: game });
+        // Small delay then send battle trigger so guest processes MOVE first
+        setTimeout(() => {
+            conn.send({
+                type: 'BATTLE_VOTE',
+                atkIdx,
+                defIdx,
+                isNeutral: window.isNeutralTarget,
+                atkName: allies[0]?.name,
+                defName: defAllies[0]?.name,
+                countLabel: `${allies.length}v${defAllies.length}`
+            });
+        }, 80);
     }
 
     openCinematicBattle(allies, defAllies, `${allies.length}v${defAllies.length}`);
 }
 
-// Guest opens battle modal with the data sent by host
 function _openGuestBattleModal(data) {
     const [col1, col2, clashWord] = getBattleTheme();
     const modal = document.getElementById('battle-modal');
     const content = modal.querySelector('.modal-content');
     content.style.cssText = 'background:transparent;border:none;padding:0;width:100%;max-width:900px;';
 
-    // Build attacker card
+    // Read units from local game state (already synced via MOVE)
+    const atkTile = game.grid[data.atkIdx];
+    const defTile = game.grid[data.defIdx];
+    const atkUnit = atkTile?.unit || { name: data.atkName || '?', img: '', tier: 'common' };
+    const defUnit = defTile?.unit || { name: data.defName || '?', img: '', tier: 'common' };
+
     const atkCardHTML = `<div class="cin-card slide-in-left">
         <div class="cin-card-img-wrap" style="--c1:${col1}">
-            <img class="cin-card-img" src="${data.atkImg || ''}">
+            <img class="cin-card-img" src="${atkUnit.img || ''}" onerror="this.style.display='none'">
             <div class="cin-card-glow"></div>
         </div>
-        <div class="cin-card-name">${data.atkName || '?'}</div>
+        <div class="cin-card-name">${atkUnit.name}</div>
     </div>`;
 
     const defCardHTML = `<div class="cin-card slide-in-right">
         <div class="cin-card-img-wrap" style="--c1:#ff4d4d">
-            <img class="cin-card-img" src="${data.defImg || ''}">
+            <img class="cin-card-img" src="${defUnit.img || ''}" onerror="this.style.display='none'">
             <div class="cin-card-glow"></div>
         </div>
-        <div class="cin-card-name">${data.defName || '?'}</div>
+        <div class="cin-card-name">${defUnit.name}</div>
     </div>`;
 
     const vsHTML = `<div class="cin-vs-wrap">
         <div class="cin-vs" style="color:${col1};text-shadow:0 0 30px ${col1},0 0 60px ${col2};">VS</div>
         <div class="cin-count" style="border-color:${col1};color:${col1};">${data.countLabel || '1v1'}</div>
-        <div class="cin-clash" style="color:${col2};">${clashWord}</div>
+        <div class="cin-clash" style="color:${col2};text-shadow:0 0 20px ${col2};">${clashWord}</div>
     </div>`;
 
-    // Vote buttons — guest is always 'guest' role
     const btnHTML = `
     <div class="cin-vote-area" style="width:100%;max-width:480px;">
         <div class="cin-vote-title">— VOTE WHO WINS —</div>
@@ -4280,30 +4286,38 @@ function endAction(apCost = 1) {
     game.ap -= apCost;
     game.selection = { type: null, idx: null };
 
-    // Sync online
-    if (conn && conn.open) {
-        conn.send({ type: 'MOVE', gameState: game });
-    }
-
     if (game.ap <= 0) {
-        // Turn is over
+        // Turn over — advance state completely, THEN sync
+        game.ap = 0;
         checkElimination();
         if (game.mode === 'showdown') checkShowdownTrigger();
+
         setTimeout(() => {
+            // Advance turn
             let nextTurn = (game.currentTurn + 1) % game.players.length;
-            while (game.players[nextTurn].eliminated) {
+            while (game.players[nextTurn] && game.players[nextTurn].eliminated) {
                 nextTurn = (nextTurn + 1) % game.players.length;
             }
             game.currentTurn = nextTurn;
             game.ap = 3;
             game.awakenTarget = null;
-            if (game.abilityMode) tickFrozen(); // decrement freeze counters on new turn
+            if (game.abilityMode) tickFrozen();
+
+            // Sync AFTER advancing — guest receives ap=3 for the new turn, never ap=0
+            if (conn && conn.open) {
+                conn.send({ type: 'MOVE', gameState: game });
+            }
+
             render();
             showTurnNotification(game.players[game.currentTurn]);
-        }, 400);
+        }, 350);
+
     } else {
-        // AP remains — keep turn going, just re-render
+        // AP remains — sync mid-turn state and re-render
         game.awakenTarget = null;
+        if (conn && conn.open) {
+            conn.send({ type: 'MOVE', gameState: game });
+        }
         render();
     }
 }
