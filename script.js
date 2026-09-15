@@ -303,7 +303,7 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
         { name: "Katakuri (Awakened)", img: "op2/katakuri1.jpg" },
         { name: "King", img: "op2/king.jpg" },
         { name: "Queen", img: "op2/queen.jpg" },
-        { name: "Jack", img: "op2/jack.jpg" },
+        { name: "Jack", img: "op2/Jack.jpg" },
         { name: "Sabo", img: "op2/sabo.jpg", nextForm: "Sabo (Awakened)", cost: 1, tip: "⚡ AWAKENS → Sabo (Awakened) [1 sacrifice]" },
         { name: "Sabo (Awakened)", img: "op2/sabo1.jpg" },
         { name: "Fujitora", img: "op2/fujitora.jpg" },
