@@ -1897,7 +1897,7 @@ function pull(tier) {
         return { 
             ...unitData, 
             tier: unitData.tier || tier,
-            id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2)
+            id: (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID() : Math.random().toString(36).substring(2)
         };
     }
     
@@ -4275,7 +4275,7 @@ function declareShowdownWinner(color) {
 function checkElimination() {
     game.players.forEach(p => {
         if (!p.eliminated) {
-            const boardUnits = game.grid.filter(tile => tile.owner === p.color && tile.unit).length;
+            const boardUnits = game.grid.filter(tile => tile && tile.owner === p.color && tile.unit).length;
             if (boardUnits === 0 && p.hand.length === 0) {
                 p.eliminated = true;
                 alert(`${p.name} has been eliminated!`);
