@@ -920,3 +920,12 @@ body { overflow-x: hidden; -webkit-overflow-scrolling: touch; }
     .menu-logo { font-size: 2rem; }
     .menu-logo em { font-size: 2.6rem; }
 }
+
+/* Multiplayer voting layout fix */
+.cin-vote-area{width:min(94vw,760px);margin:18px auto 0;position:relative;z-index:20;text-align:center;padding:0 8px;box-sizing:border-box}
+.cin-voters{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px!important;width:100%}
+.cin-voter{min-width:0;background:rgba(0,0,0,.5);border:1px solid #222;border-radius:10px;padding:10px;box-sizing:border-box}
+.cin-voter-btns{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
+.cin-vote-btn{flex:1 1 58px;min-width:58px;max-width:120px;padding:8px 6px;box-sizing:border-box}
+@media(max-width:700px){.cin-vote-area{width:96vw;margin-top:10px}.cin-voters{grid-template-columns:repeat(2,minmax(0,1fr))!important}.cin-voter{padding:7px 5px}.cin-voter-name{font-size:9px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cin-vote-btn{font-size:9px!important;padding:7px 3px!important;min-width:0}.cin-combatants{gap:6px!important}.cin-card-img{width:72px!important;height:102px!important}.cin-vs{font-size:32px!important}}
+@media(max-width:390px){.cin-voters{grid-template-columns:1fr 1fr!important}.cin-vote-area{padding:0 3px}.cin-card-img{width:62px!important;height:88px!important}}
