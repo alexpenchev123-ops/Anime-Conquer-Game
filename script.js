@@ -1354,35 +1354,37 @@ function handleIncomingData(data) {
     if (data.type === 'MOVE') {
         const prevTurn = game.currentTurn;
         game = data.gameState;
-        // Don't re-render if a voting battle modal is currently open — it would close it.
-        // Exception: if the turn changed (battle resolved + turn advanced), always render.
         const battleModal = document.getElementById('battle-modal');
         const battleIsOpen = battleModal && battleModal.style.display === 'flex';
         const turnChanged = game.currentTurn !== prevTurn;
         if (!battleIsOpen || turnChanged) {
             if (battleIsOpen && turnChanged) {
-                // Close battle modal before re-rendering
                 battleModal.style.display = 'none';
                 battleModal.querySelector('.modal-content').style.cssText = '';
             }
             render();
         }
+        if (turnChanged) startTurnTimer();
     }
     if (data.type === 'GUEST_NAME') {
-        // Host: guest sent their name
         window._guestName = data.name;
-        // Update the overlay display
         const el = document.getElementById('guest-name-display');
-        if (el) { el.innerText = `Guest: ${data.name}`; el.style.color = '#4dff88'; }
-        // Update setup screen if it's showing
-        const guestStatus = document.getElementById('guest-name-status');
-        if (guestStatus) { guestStatus.innerText = data.name; guestStatus.style.color = '#4dff88'; }
+        if (el) { el.innerText = `✅ Guest: ${data.name}`; el.style.color = '#4dff88'; el.style.fontWeight = 'bold'; }
         const mpStatus = document.getElementById('mp-status');
-        if (mpStatus) mpStatus.innerText = '✅ BOTH PLAYERS READY — Configure game and start!';
+        if (mpStatus) mpStatus.innerText = `✅ ${data.name} is ready!`;
         conn.send({ type: 'GUEST_NAME_ACK' });
-        // Auto-navigate host to setup
-        _hideOnlineOverlay();
-        showSetup(game.votingMode ? 'voting' : 'normal');
+        // Show START GAME button — host decides when to start
+        const existing = document.getElementById('start-game-btn');
+        if (!existing) {
+            const btn = document.createElement('button');
+            btn.id = 'start-game-btn';
+            btn.className = 'start-btn';
+            btn.style.cssText = 'margin-top:16px;width:100%;';
+            btn.innerText = '▶ START GAME';
+            btn.onclick = () => { _hideOnlineOverlay(); showSetup(game.votingMode ? 'voting' : 'normal'); };
+            const overlay = document.querySelector('#online-overlay .submenu-inner');
+            if (overlay) overlay.appendChild(btn);
+        }
     }
     if (data.type === 'VOTE_REQUEST') {
         const totalPlayers = game.players.filter(p => !p.eliminated).length;
@@ -1399,16 +1401,21 @@ function handleIncomingData(data) {
     if (data.type === 'BATTLE_VOTE_CAST') {
         handleBattleVoteCast(data.side, data.voter);
     }
+    if (data.type === 'BATTLE_SHOW') {
+        // Standard online: guest sees the battle modal (auto-resolves, no voting)
+        window.currentAtkIdx = data.atkIdx;
+        window.currentDefIdx = data.defIdx;
+        window.isNeutralTarget = data.isNeutral;
+        window.isBattleFromHand = false;
+        _openGuestBattleModal(data, false); // false = standard (not voting)
+    }
     if (data.type === 'BATTLE_VOTE') {
-        // Guest: host started a battle, open the same cinematic modal
-        // Store attacker/defender indices so guest can call resolveManual correctly
         window.currentAtkIdx = data.atkIdx;
         window.currentDefIdx = data.defIdx;
         window.isNeutralTarget = data.isNeutral;
         window.isBattleFromHand = false;
         window._battleVoteData = { atkName: data.atkName, defName: data.defName, votes: {} };
-        // Build a minimal version of the battle UI for guest using names/images
-        _openGuestBattleModal(data);
+        _openGuestBattleModal(data, true); // true = voting
     }
     if (data.type === 'BATTLE_VOTE_RESULT') {
         handleBattleVoteResult(data.atkWins);
@@ -1526,12 +1533,28 @@ function showPassScreen(playerName, playerColor) {
     _passScreenActive = true;
     const nameEl = document.getElementById('pass-player-name');
     if (nameEl) { nameEl.innerText = playerName.toUpperCase(); nameEl.style.color = playerColor; }
+    // Hide game content so next player can't see it
+    const boardEl = document.getElementById('board');
+    const handEl = document.getElementById('hand-display');
+    const panelEl = document.querySelector('.ui-panel');
+    if (boardEl) boardEl.style.visibility = 'hidden';
+    if (handEl) handEl.style.visibility = 'hidden';
+    if (panelEl) panelEl.style.visibility = 'hidden';
+
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('pass-screen').classList.add('active');
 }
 
 function dismissPassScreen() {
     _passScreenActive = false;
+    // Restore visibility
+    const boardEl = document.getElementById('board');
+    const handEl = document.getElementById('hand-display');
+    const panelEl = document.querySelector('.ui-panel');
+    if (boardEl) boardEl.style.visibility = '';
+    if (handEl) handEl.style.visibility = '';
+    if (panelEl) panelEl.style.visibility = '';
+
     document.getElementById('pass-screen').classList.remove('active');
     document.getElementById('game-screen').classList.add('active');
     render();
@@ -1802,9 +1825,9 @@ function initGame() {
         const firstPlayer = game.players[game.currentTurn];
         setTimeout(() => showPassScreen(firstPlayer.name, firstPlayer.color), 300);
     } else {
-        // Online: show turn notification
         showTurnNotification(game.players[game.currentTurn]);
     }
+    startTurnTimer();
 }
 
 function pull(tier) {
@@ -1911,6 +1934,7 @@ function executeGodTrade(player, indices) {
 }
 
 function handleTrade() {
+    if (conn && conn.open && !isMyTurn()) return;
     if (game.ap < 2) { showApToast("TRADE COSTS 2 AP — NOT ENOUGH"); return; }
     const p = game.players[game.currentTurn];
     const selectedElements = document.querySelectorAll('.hand-card.selected-for-trade');
@@ -2292,6 +2316,9 @@ function handleAwaken() {
 
 // --- MAIN CLICK HANDLER ---
 function handleTileClick(idx) {
+    // Online: only current player can act
+    if (conn && conn.open && !isMyTurn()) return;
+
     // Ability Mode: if an active ability is pending a target, route this click there
     if (game.abilityMode && window.abilityPendingType) {
         handleAbilityClick(idx);
@@ -2529,25 +2556,35 @@ function openCinematicBattle(allies, defAllies, countLabel) {
     let btnHTML = '';
 
     if (isStandardOnline) {
-        // Standard online: auto-resolve by power with explanation
+        // Standard online: stronger unit wins automatically based on tier score.
+        // Calculate winner immediately and show result — no button needed.
         const atkUnit = allies[0], defUnit = defAllies[0];
-        const { atkWins, atkWinChance, defWinChance, reasoning, tieMethod } = getBattleAnalysis(atkUnit, defUnit);
-        const tieHTML = tieMethod ? `<div class="cin-tie-method">⚖️ ${tieMethod}</div>` : '';
+        const as = unitScore(atkUnit), ds = unitScore(defUnit);
+        const atkWins = as >= ds; // attacker wins ties (first-strike advantage)
+
+        const tierNames = { common:'Common', rare:'Rare', epic:'Epic', mythic:'Mythic', legendary:'Legendary', ultra:'Ultra', god:'God' };
+        const aTier = tierNames[atkUnit.tier || 'common'] || 'Common';
+        const dTier = tierNames[defUnit.tier || 'common'] || 'Common';
+
+        let reasoning;
+        if (as > ds)       reasoning = `${atkUnit.name} (${aTier}, ${as}pts) overpowers ${defUnit.name} (${dTier}, ${ds}pts).`;
+        else if (ds > as)  reasoning = `${defUnit.name} (${dTier}, ${ds}pts) overpowers ${atkUnit.name} (${aTier}, ${as}pts).`;
+        else               reasoning = `Equal power (both ${aTier}, ${as}pts) — attacker strikes first.`;
+
         btnHTML = `
         <div class="cin-analysis">
+            <div style="font-size:11px;color:#555;letter-spacing:3px;margin-bottom:8px;">AUTO RESOLVE</div>
             <div class="cin-analysis-text">${reasoning}</div>
-            ${tieHTML}
-            <div class="cin-analysis-odds">
-                <span style="color:${col1}">⚔️ ${atkUnit.name}: ${atkWinChance}/10</span>
-                <span style="color:#555;margin:0 8px;">vs</span>
-                <span style="color:#ff4d4d">🛡️ ${defUnit.name}: ${defWinChance}/10</span>
+            <div style="margin-top:12px;font-size:18px;font-weight:900;color:${atkWins?col1:'#ff4d4d'};letter-spacing:2px;">
+                ${atkWins ? '⚔️ '+atkUnit.name.toUpperCase()+' WINS' : '🛡️ '+defUnit.name.toUpperCase()+' WINS'}
             </div>
-        </div>
-        <div class="cin-buttons">
-            <button class="cin-btn cin-btn-auto" style="background:${atkWins?col1:'#ff4d4d'};" onclick="resolveManual(${atkWins})">
-                ⚡ ${atkWins ? allies[0].name.toUpperCase()+' WINS' : defAllies[0].name.toUpperCase()+' WINS'}
-            </button>
         </div>`;
+
+        // Auto-resolve after 2.2s so both players can read the result
+        // Only host resolves game state to prevent double-apply
+        if (isHost) {
+            setTimeout(() => resolveManual(atkWins), 2200);
+        }
 
     } else if (isVotingOnline) {
         // Both players see the same modal with TWO vote buttons — one per player.
@@ -2633,21 +2670,21 @@ function openCinematicBattle(allies, defAllies, countLabel) {
             @keyframes spark-fade     { to{opacity:0;width:0} }
             @keyframes battle-shake   { 0%,100%{transform:translate(0,0)} 15%{transform:translate(-6px,4px)} 30%{transform:translate(6px,-4px)} 45%{transform:translate(-4px,6px)} 60%{transform:translate(4px,-2px)} 75%{transform:translate(-2px,4px)} }
             .battle-shake { animation:battle-shake 0.5s ease-out !important; }
-            .cin-arena { position:relative;width:100%;min-height:480px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;box-sizing:border-box; }
+            .cin-arena { position:relative;width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:16px 8px 8px; }
             .cin-bg-glow { position:absolute;inset:0;pointer-events:none;z-index:0; }
-            .cin-combatants { display:flex;align-items:center;justify-content:center;gap:20px;width:100%;position:relative;z-index:1;flex-wrap:wrap; }
-            .cin-side { display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:320px; }
-            .cin-card { display:flex;flex-direction:column;align-items:center;gap:8px; }
+            .cin-combatants { display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;gap:8px;width:100%;position:relative;z-index:1;overflow:hidden; }
+            .cin-side { display:flex;gap:6px;flex-wrap:wrap;justify-content:center;flex:1;min-width:0;max-width:42%; }
+            .cin-card { display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;width:100%; }
             .cin-card.slide-in-left  { animation:slide-in-left  0.45s cubic-bezier(.22,1,.36,1) forwards; }
             .cin-card.slide-in-right { animation:slide-in-right 0.45s cubic-bezier(.22,1,.36,1) forwards; }
-            .cin-card-img-wrap { position:relative;border-radius:12px;overflow:hidden;box-shadow:0 0 20px var(--c1,#4d79ff); }
-            .cin-card-img { width:140px;height:200px;object-fit:cover;display:block; }
+            .cin-card-img-wrap { position:relative;border-radius:10px;overflow:hidden;box-shadow:0 0 16px var(--c1,#4d79ff);width:100%; }
+            .cin-card-img { width:100%;max-width:130px;aspect-ratio:2/3;object-fit:cover;object-position:center top;display:block; }
             .cin-card-glow { position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.6)); }
-            .cin-card-name { font-size:12px;font-weight:900;letter-spacing:1px;text-align:center;color:white;text-transform:uppercase;text-shadow:0 0 8px rgba(255,255,255,0.5);max-width:140px; }
-            .cin-vs-wrap { display:flex;flex-direction:column;align-items:center;gap:8px;min-width:120px; }
-            .cin-vs { font-size:72px;font-weight:900;font-style:italic;animation:vs-pop 0.6s 0.3s cubic-bezier(.22,1,.36,1) both; }
-            .cin-count { border:2px solid;border-radius:20px;padding:4px 14px;font-size:14px;font-weight:900;letter-spacing:2px; }
-            .cin-clash { font-size:16px;font-weight:900;letter-spacing:3px;animation:clash-pulse 1.5s infinite; }
+            .cin-card-name { font-size:10px;font-weight:900;letter-spacing:0.5px;text-align:center;color:white;text-transform:uppercase;text-shadow:0 0 8px rgba(255,255,255,0.5);width:100%;word-break:break-word; }
+            .cin-vs-wrap { display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;width:72px;z-index:2; }
+            .cin-vs { font-size:44px;font-weight:900;font-style:italic;animation:vs-pop 0.6s 0.3s cubic-bezier(.22,1,.36,1) both;line-height:1; }
+            .cin-count { border:2px solid;border-radius:20px;padding:3px 8px;font-size:11px;font-weight:900;letter-spacing:1px;white-space:nowrap; }
+            .cin-clash { font-size:12px;font-weight:900;letter-spacing:2px;animation:clash-pulse 1.5s infinite;text-align:center; }
             .cin-buttons { display:flex;gap:20px;margin-top:20px;position:relative;z-index:1;flex-wrap:wrap;justify-content:center; }
             .cin-btn { padding:14px 32px;font-size:14px;font-weight:900;letter-spacing:2px;border:none;border-radius:8px;color:white;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;text-transform:uppercase; }
             .cin-btn:hover { transform:scale(1.07);box-shadow:0 0 20px rgba(255,255,255,0.3); }
@@ -2771,16 +2808,12 @@ function showBattleModal(atkIdx, defIdx) {
         });
     }
 
-    // Voting online: sync current game state FIRST so guest has latest grid,
-    // THEN send BATTLE_VOTE so guest reads correct tile data when building modal
-    if (conn && conn.open && game.votingMode) {
-        window._battleVoteData = { votes: {} };
-        // Sync game state first
+    // Online: sync game state then tell guest to show battle modal
+    if (conn && conn.open) {
         conn.send({ type: 'MOVE', gameState: game });
-        // Small delay then send battle trigger so guest processes MOVE first
         setTimeout(() => {
             conn.send({
-                type: 'BATTLE_VOTE',
+                type: game.votingMode ? 'BATTLE_VOTE' : 'BATTLE_SHOW',
                 atkIdx,
                 defIdx,
                 isNeutral: window.isNeutralTarget,
@@ -2788,19 +2821,19 @@ function showBattleModal(atkIdx, defIdx) {
                 defName: defAllies[0]?.name,
                 countLabel: `${allies.length}v${defAllies.length}`
             });
+            if (game.votingMode) window._battleVoteData = { votes: {} };
         }, 80);
     }
 
     openCinematicBattle(allies, defAllies, `${allies.length}v${defAllies.length}`);
 }
 
-function _openGuestBattleModal(data) {
+function _openGuestBattleModal(data, isVoting) {
     const [col1, col2, clashWord] = getBattleTheme();
     const modal = document.getElementById('battle-modal');
     const content = modal.querySelector('.modal-content');
     content.style.cssText = 'background:transparent;border:none;padding:0;width:100%;max-width:900px;';
 
-    // Read units from local game state (already synced via MOVE)
     const atkTile = game.grid[data.atkIdx];
     const defTile = game.grid[data.defIdx];
     const atkUnit = atkTile?.unit || { name: data.atkName || '?', img: '', tier: 'common' };
@@ -2808,7 +2841,7 @@ function _openGuestBattleModal(data) {
 
     const atkCardHTML = `<div class="cin-card slide-in-left">
         <div class="cin-card-img-wrap" style="--c1:${col1}">
-            <img class="cin-card-img" src="${atkUnit.img || ''}" onerror="this.style.display='none'">
+            <img class="cin-card-img" src="${atkUnit.img || ''}" onerror="this.style.opacity='0'">
             <div class="cin-card-glow"></div>
         </div>
         <div class="cin-card-name">${atkUnit.name}</div>
@@ -2816,7 +2849,7 @@ function _openGuestBattleModal(data) {
 
     const defCardHTML = `<div class="cin-card slide-in-right">
         <div class="cin-card-img-wrap" style="--c1:#ff4d4d">
-            <img class="cin-card-img" src="${defUnit.img || ''}" onerror="this.style.display='none'">
+            <img class="cin-card-img" src="${defUnit.img || ''}" onerror="this.style.opacity='0'">
             <div class="cin-card-glow"></div>
         </div>
         <div class="cin-card-name">${defUnit.name}</div>
@@ -2828,31 +2861,53 @@ function _openGuestBattleModal(data) {
         <div class="cin-clash" style="color:${col2};text-shadow:0 0 20px ${col2};">${clashWord}</div>
     </div>`;
 
-    const btnHTML = `
-    <div class="cin-vote-area" style="width:100%;max-width:480px;">
-        <div class="cin-vote-title">— VOTE WHO WINS —</div>
-        <div class="cin-voters" style="gap:14px;">
-            <div class="cin-voter" id="voter-guest">
-                <div class="cin-voter-name" style="color:#4dff88;">YOU (GUEST)</div>
-                <div class="cin-voter-btns">
-                    <button class="cin-vote-btn" style="border-color:${col1};color:${col1};"
-                        onclick="castOnlineBattleVote('atk','guest',this)">⚔️ ATK</button>
-                    <button class="cin-vote-btn" style="border-color:#ff4d4d;color:#ff4d4d;"
-                        onclick="castOnlineBattleVote('def','guest',this)">🛡️ DEF</button>
+    let bottomHTML = '';
+    if (isVoting) {
+        bottomHTML = `
+        <div class="cin-vote-area" style="width:100%;max-width:480px;">
+            <div class="cin-vote-title">— VOTE WHO WINS —</div>
+            <div class="cin-voters" style="gap:14px;">
+                <div class="cin-voter" id="voter-guest">
+                    <div class="cin-voter-name" style="color:#4dff88;">YOU (GUEST)</div>
+                    <div class="cin-voter-btns">
+                        <button class="cin-vote-btn" style="border-color:${col1};color:${col1};"
+                            onclick="castOnlineBattleVote('atk','guest',this)">⚔️ ATK</button>
+                        <button class="cin-vote-btn" style="border-color:#ff4d4d;color:#ff4d4d;"
+                            onclick="castOnlineBattleVote('def','guest',this)">🛡️ DEF</button>
+                    </div>
+                </div>
+                <div class="cin-voter" id="voter-host">
+                    <div class="cin-voter-name" style="color:#888;">OPPONENT (HOST)</div>
+                    <div class="cin-voter-btns">
+                        <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>⚔️ ATK</button>
+                        <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>🛡️ DEF</button>
+                    </div>
                 </div>
             </div>
-            <div class="cin-voter" id="voter-host">
-                <div class="cin-voter-name" style="color:#888;">OPPONENT (HOST)</div>
-                <div class="cin-voter-btns">
-                    <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>⚔️ ATK</button>
-                    <button class="cin-vote-btn" style="border-color:#333;color:#444;" disabled>🛡️ DEF</button>
-                </div>
+            <div id="battle-vote-status" class="cin-vote-status" style="margin-top:14px;">
+                Waiting for both players to vote...
             </div>
-        </div>
-        <div id="battle-vote-status" class="cin-vote-status" style="margin-top:14px;">
-            Waiting for both players to vote...
-        </div>
-    </div>`;
+        </div>`;
+    } else {
+        // Standard online: show auto-resolve result (mirror what host sees)
+        const as = unitScore(atkUnit), ds = unitScore(defUnit);
+        const atkWins = as >= ds;
+        const tierNames = { common:'Common', rare:'Rare', epic:'Epic', mythic:'Mythic', legendary:'Legendary', ultra:'Ultra', god:'God' };
+        const aTier = tierNames[atkUnit.tier || 'common'] || 'Common';
+        const dTier = tierNames[defUnit.tier || 'common'] || 'Common';
+        let reasoning;
+        if (as > ds)      reasoning = `${atkUnit.name} (${aTier}, ${as}pts) overpowers ${defUnit.name} (${dTier}, ${ds}pts).`;
+        else if (ds > as) reasoning = `${defUnit.name} (${dTier}, ${ds}pts) overpowers ${atkUnit.name} (${aTier}, ${as}pts).`;
+        else              reasoning = `Equal power (both ${aTier}, ${as}pts) — attacker strikes first.`;
+        bottomHTML = `
+        <div class="cin-analysis">
+            <div style="font-size:11px;color:#555;letter-spacing:3px;margin-bottom:8px;">AUTO RESOLVE</div>
+            <div class="cin-analysis-text">${reasoning}</div>
+            <div style="margin-top:12px;font-size:18px;font-weight:900;color:${atkWins?col1:'#ff4d4d'};letter-spacing:2px;">
+                ${atkWins ? '⚔️ '+atkUnit.name.toUpperCase()+' WINS' : '🛡️ '+defUnit.name.toUpperCase()+' WINS'}
+            </div>
+        </div>`;
+    }
 
     content.innerHTML = `
         <div class="cin-arena" style="--c1:${col1};--c2:${col2};">
@@ -2862,7 +2917,7 @@ function _openGuestBattleModal(data) {
                 ${vsHTML}
                 <div class="cin-side cin-def">${defCardHTML}</div>
             </div>
-            ${btnHTML}
+            ${bottomHTML}
         </div>`;
 
     modal.style.display = 'flex';
@@ -3498,16 +3553,14 @@ function handleBattleVoteResult(atkWins) {
 }
 
 function resolveManual(wins) {
-    // Voting online: guest does not change game state — host resolves and syncs via MOVE
-    if (conn && conn.open && game.votingMode && !isHost) {
-        // Just close the modal on guest side; state update comes via MOVE sync
+    // Online guest: never drives game state — host resolves and syncs via MOVE
+    if (conn && conn.open && !isHost) {
+        // Just close the modal; state update arrives via MOVE sync
         const modal = document.getElementById('battle-modal');
-        if (modal) {
-            setTimeout(() => {
-                modal.style.display = 'none';
-                modal.querySelector('.modal-content').style.cssText = '';
-            }, 400);
-        }
+        if (modal) setTimeout(() => {
+            modal.style.display = 'none';
+            modal.querySelector('.modal-content').style.cssText = '';
+        }, 400);
         return;
     }
 
@@ -3790,16 +3843,15 @@ function render() {
     const hDisplay = document.getElementById('hand-display');
     hDisplay.innerHTML = "";
 
-    // HIDDEN HANDS: In ALL modes, only current player sees their own cards.
-    // Online: determined by isHost/guest index. Local: pass-screen handles it.
-    // After pass-screen is dismissed, show current player's hand.
     const isOnline = !!(conn && conn.open);
-    // In local modes we always show current player's hand (pass screen already hid it)
-    // In online: host=players[0], guest=players[1]
-    const shouldHide = isOnline && !isMyTurn();
+    // Online: ALWAYS show only YOUR cards. p = current turn's player.
+    // If this is not your seat, show face-down regardless of whose turn it is.
+    const myIdx = isOnline ? ((typeof game.mySeatIndex === 'number') ? game.mySeatIndex : (isHost ? 0 : 1)) : -1;
+    // Find index of p in players array
+    const pIdx = game.players.indexOf(p);
+    const shouldHide = isOnline && (pIdx !== myIdx);
 
     if (shouldHide) {
-        // Opponent's hand: show face-down cards
         for (let i = 0; i < p.hand.length; i++) {
             const card = document.createElement('div');
             card.className = 'hand-card';
@@ -4282,18 +4334,59 @@ function showApToast(msg) {
     setTimeout(() => toast.remove(), 1400);
 }
 
+// ─── 60-second turn timer ─────────────────────────────────────
+let _turnTimerInterval = null;
+let _turnTimerSeconds = 60;
+
+function startTurnTimer() {
+    clearTurnTimer();
+    _turnTimerSeconds = 60;
+    _renderTimer();
+    _turnTimerInterval = setInterval(() => {
+        _turnTimerSeconds--;
+        _renderTimer();
+        if (_turnTimerSeconds <= 0) {
+            clearTurnTimer();
+            // Only the current player (or host in online) auto-ends
+            if (!conn || !conn.open || isMyTurn()) {
+                game.ap = 1; // endAction will deduct 1, hitting 0
+                endAction(1);
+            }
+        }
+    }, 1000);
+}
+
+function clearTurnTimer() {
+    if (_turnTimerInterval) { clearInterval(_turnTimerInterval); _turnTimerInterval = null; }
+    const el = document.getElementById('turn-timer');
+    if (el) el.remove();
+}
+
+function _renderTimer() {
+    let el = document.getElementById('turn-timer');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'turn-timer';
+        el.style.cssText = 'font-size:11px;letter-spacing:2px;font-weight:bold;text-align:center;margin-top:3px;transition:color 0.3s;';
+        const indicator = document.getElementById('turn-indicator');
+        if (indicator) indicator.after(el);
+    }
+    const s = _turnTimerSeconds;
+    el.innerText = `⏱ ${s}s`;
+    el.style.color = s <= 10 ? '#ff4d4d' : s <= 20 ? '#ffaa00' : '#555';
+}
+
 function endAction(apCost = 1) {
     game.ap -= apCost;
     game.selection = { type: null, idx: null };
 
     if (game.ap <= 0) {
-        // Turn over — advance state completely, THEN sync
         game.ap = 0;
         checkElimination();
         if (game.mode === 'showdown') checkShowdownTrigger();
+        clearTurnTimer();
 
         setTimeout(() => {
-            // Advance turn
             let nextTurn = (game.currentTurn + 1) % game.players.length;
             while (game.players[nextTurn] && game.players[nextTurn].eliminated) {
                 nextTurn = (nextTurn + 1) % game.players.length;
@@ -4303,21 +4396,16 @@ function endAction(apCost = 1) {
             game.awakenTarget = null;
             if (game.abilityMode) tickFrozen();
 
-            // Sync AFTER advancing — guest receives ap=3 for the new turn, never ap=0
-            if (conn && conn.open) {
-                conn.send({ type: 'MOVE', gameState: game });
-            }
+            // Sync AFTER advancing so remote gets ap=3, never ap=0
+            if (conn && conn.open) conn.send({ type: 'MOVE', gameState: game });
 
             render();
             showTurnNotification(game.players[game.currentTurn]);
+            startTurnTimer();
         }, 350);
-
     } else {
-        // AP remains — sync mid-turn state and re-render
         game.awakenTarget = null;
-        if (conn && conn.open) {
-            conn.send({ type: 'MOVE', gameState: game });
-        }
+        if (conn && conn.open) conn.send({ type: 'MOVE', gameState: game });
         render();
     }
 }
@@ -4500,6 +4588,7 @@ function confirmChangeVerse() {
 function backToMenu() {
     _navHistory = ['menu'];
     _passScreenActive = false;
+    clearTurnTimer();
     _hideOnlineOverlay();
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById('menu').classList.add('active');
