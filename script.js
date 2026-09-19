@@ -1241,6 +1241,36 @@ function isMyTurn() {
     return game.currentTurn === myIdx;
 }
 
+// --- Online privacy helpers ---
+function stateForSeat(seatIndex) {
+    const copy = (typeof structuredClone === 'function') ? structuredClone(game) : JSON.parse(JSON.stringify(game));
+    copy.players.forEach((p,i)=>{ p.handCount=Array.isArray(p.hand)?p.hand.length:(p.handCount||0); if(i!==seatIndex)p.hand=[]; });
+    delete copy.mySeatIndex; return copy;
+}
+function seatForConnection(c){ if(!c)return -1; const n=onlineGuestNames[c.peer]; return game.players.findIndex(p=>p.name===n); }
+function sendStateToAll(){
+    if(!onlineConnected())return;
+    if(isHost) onlineConnections.filter(c=>c&&c.open).forEach(c=>{const seat=seatForConnection(c);if(seat>=0)c.send({type:'MOVE',gameState:stateForSeat(seat)});});
+    else if(conn&&conn.open) conn.send({type:'MOVE',gameState:stateForSeat(game.mySeatIndex)});
+}
+function mergeIncomingState(incoming,sourceConn){
+    const localSeat=game.mySeatIndex;
+    if(isHost&&sourceConn){
+        const senderSeat=seatForConnection(sourceConn), hands=game.players.map(p=>Array.isArray(p.hand)?p.hand:[]);
+        game=incoming; game.players.forEach((p,i)=>{if(i!==senderSeat)p.hand=hands[i]||[];p.handCount=Array.isArray(p.hand)?p.hand.length:(p.handCount||0);}); game.mySeatIndex=0;
+    } else {
+        const own=game.players?.[localSeat]?.hand||[]; game=incoming; if(game.players?.[localSeat]&&own.length)game.players[localSeat].hand=own; game.mySeatIndex=localSeat;
+    }
+}
+function removeDisconnectedPlayer(connection){
+    if(!isHost||!game.players?.length)return; const seat=seatForConnection(connection);
+    if(seat<0||!game.players[seat]||game.players[seat].eliminated)return; const leaving=game.players[seat];
+    leaving.eliminated=true;leaving.hand=[];leaving.handCount=0;
+    game.grid.forEach(t=>{if(t&&t.owner===leaving.color){t.unit=null;t.owner='neutral';}});
+    addLog(`🚪 <b>${leaving.name}</b> left and was removed.`);
+    if(game.currentTurn===seat){let next=(seat+1)%game.players.length,guard=0;while(game.players[next]?.eliminated&&guard++<game.players.length)next=(next+1)%game.players.length;game.currentTurn=next;game.ap=3;game.selection={type:null,idx:null};}
+    checkElimination();sendStateToAll();render();startTurnTimer();
+}
 function createOnlineGame(onlineMode) {
     isHost = true;
     game.votingMode = (onlineMode === 'voting');
@@ -1291,7 +1321,7 @@ function createOnlineGame(onlineMode) {
             sendOnline({ type:'SET_MODE', votingMode: game.votingMode }, connection);
         });
         connection.on('data', data => handleIncomingData(data, connection));
-        connection.on('close', () => { onlineConnections = onlineConnections.filter(c => c !== connection); delete onlineGuestNames[connection.peer]; updateOnlineLobbyDisplay(); });
+        connection.on('close', () => { removeDisconnectedPlayer(connection); onlineConnections = onlineConnections.filter(c => c !== connection); delete onlineGuestNames[connection.peer]; updateOnlineLobbyDisplay(); });
         connection.on('error', err => console.error('conn error', err));
     });
 }
@@ -1316,6 +1346,7 @@ function joinOnlineGame() {
         conn = peer.connect(code, { reliable: true });
         conn.on('open', () => { const s=document.getElementById('mp-status'); if(s) s.innerText='✅ CONNECTED! Waiting for host...'; });
         conn.on('data', data => handleIncomingData(data, conn));
+        conn.on('close', () => { if(document.getElementById('game-screen')?.classList.contains('active')) showApToast('CONNECTION LOST — YOU LEFT THE ONLINE GAME'); });
         conn.on('error', () => { const s=document.getElementById('mp-status'); if(s) s.innerText='❌ Connection failed. Check the code.'; });
     });
 }
@@ -1376,11 +1407,8 @@ function handleIncomingData(data, sourceConn = null) {
     }
     if (data.type === 'MOVE') {
         const prevTurn = game.currentTurn;
-        const localSeat = game.mySeatIndex;
-        game = data.gameState;
-        game.mySeatIndex = localSeat;
-        // Host is the hub: forward a guest's valid state update to the other guests.
-        if (isHost && sourceConn) sendOnline({ type:'MOVE', gameState: game }, null, sourceConn);
+        mergeIncomingState(data.gameState, sourceConn);
+        if (isHost && sourceConn) sendStateToAll();
         const battleModal = document.getElementById('battle-modal');
         const battleIsOpen = battleModal && battleModal.style.display === 'flex';
         const turnChanged = game.currentTurn !== prevTurn;
@@ -1490,7 +1518,8 @@ function syncGameToGuest() {
     onlineConnections.filter(c=>c&&c.open).forEach((c, idx) => {
         const guestName = onlineGuestNames[c.peer] || `Player ${idx+2}`;
         const seat = game.players.findIndex(p => p.name === guestName);
-        sendOnline({ type:'START_GAME', gameState: game, verse:selectedVerse, guestSeatIndex: seat >= 0 ? seat : idx+1 }, c);
+        const guestSeat=seat>=0?seat:idx+1;
+        sendOnline({type:'START_GAME',gameState:stateForSeat(guestSeat),verse:selectedVerse,guestSeatIndex:guestSeat},c);
     });
 }
 let _navHistory = ['menu'];
@@ -2800,7 +2829,7 @@ function showBattleModal(atkIdx, defIdx) {
 
     // Online: sync game state then tell guest to show battle modal
     if (onlineConnected()) {
-        sendOnline({ type: 'MOVE', gameState: game });
+        sendStateToAll();
         setTimeout(() => {
             sendOnline({
                 type: game.votingMode ? 'BATTLE_VOTE' : 'BATTLE_SHOW',
@@ -3806,47 +3835,36 @@ function render() {
         document.getElementById('turn-indicator').parentNode.insertBefore(endTurnBtn, document.getElementById('turn-indicator').nextSibling.nextSibling);
     }
 
-    const hDisplay = document.getElementById('hand-display');
-    hDisplay.innerHTML = "";
+    // Online games are continuous: no manual stop/change/skip controls.
+    const cornerControls=document.querySelector('.game-corner-buttons');
+    if(cornerControls)cornerControls.style.display=onlineConnected()?'none':'';
+    if(endTurnBtn)endTurnBtn.style.display=onlineConnected()?'none':'block';
 
-    const isOnline = onlineConnected();
-    // Online: ALWAYS show only YOUR cards. p = current turn's player.
-    // If this is not your seat, show face-down regardless of whose turn it is.
-    const myIdx = isOnline ? ((typeof game.mySeatIndex === 'number') ? game.mySeatIndex : (isHost ? 0 : 1)) : -1;
-    // Find index of p in players array
-    const pIdx = game.players.indexOf(p);
-    const shouldHide = isOnline && (pIdx !== myIdx);
-
-    if (shouldHide) {
-        const lbl = document.createElement('div');
-        lbl.style.cssText = 'width:100%;min-height:90px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#555;letter-spacing:2px;border:1px solid #1b1b2a;border-radius:10px;background:#080810;padding:16px;';
-        lbl.innerHTML = `🔒 ${p.name.toUpperCase()}'S HAND IS HIDDEN<br><span style="color:#333;font-size:10px;margin-left:6px;">${p.hand.length} CARDS</span>`;
-        hDisplay.appendChild(lbl);
-    } else {
-        p.hand.forEach((u, i) => {
-            const card = document.createElement('div');
-            const isSelected = (game.selection.type === 'hand' && game.selection.idx === i);
-            card.className = `hand-card ${isSelected ? 'active-selection' : ''}`;
-            card.dataset.idx = i;
-            const showTipBadge = u.nextForm || (game.abilityMode && u.tip && !u.nextForm);
-            const tipBadge = showTipBadge ? `<div class="card-tip-badge">${u.nextForm ? '⚡' : '★'}</div>` : '';
-            card.innerHTML = `<img src="${u.img}">${tipBadge}<div class="hand-name-tag">${u.name}</div>`;
-            const handTip = u.nextForm ? (u.tip || '') : (game.abilityMode ? (u.tip || '') : '');
-            card.addEventListener('mouseenter', () => showPreview(u.img, u.name, u.tier || '', handTip));
-            card.addEventListener('mouseleave', hidePreview);
-            card.onclick = (e) => {
-                e.stopPropagation();
-                if (isOnline && !isMyTurn()) return;
-                if (game.awakenTarget !== null) {
-                    card.classList.toggle('selected-for-trade');
-                    updateTradeButtonState(); updateSpecialUI(); return;
-                }
-                card.classList.toggle('selected-for-trade');
-                game.selection = { type: 'hand', idx: i };
-                updateTradeButtonState(); updateSpecialUI();
+    const hDisplay=document.getElementById('hand-display');
+    hDisplay.innerHTML='';
+    const isOnline=onlineConnected();
+    const myIdx=isOnline?((typeof game.mySeatIndex==='number')?game.mySeatIndex:(isHost?0:1)):game.currentTurn;
+    const handOwner=game.players[myIdx];
+    if(handOwner){
+        const hand=Array.isArray(handOwner.hand)?handOwner.hand:[];
+        hand.forEach((u,i)=>{
+            const card=document.createElement('div');
+            const isSelected=(game.selection.type==='hand'&&game.selection.idx===i&&game.currentTurn===myIdx);
+            card.className=`hand-card ${isSelected?'active-selection':''}`; card.dataset.idx=i;
+            const showTipBadge=u.nextForm||(game.abilityMode&&u.tip&&!u.nextForm);
+            const tipBadge=showTipBadge?`<div class="card-tip-badge">${u.nextForm?'⚡':'★'}</div>`:'';
+            card.innerHTML=`<img src="${u.img}">${tipBadge}<div class="hand-name-tag">${u.name}</div>`;
+            const handTip=u.nextForm?(u.tip||''):(game.abilityMode?(u.tip||''):'');
+            card.addEventListener('mouseenter',()=>showPreview(u.img,u.name,u.tier||'',handTip));
+            card.addEventListener('mouseleave',hidePreview);
+            card.onclick=e=>{
+                e.stopPropagation(); if(isOnline&&!isMyTurn())return;
+                if(game.awakenTarget!==null){card.classList.toggle('selected-for-trade');updateTradeButtonState();updateSpecialUI();return;}
+                card.classList.toggle('selected-for-trade');game.selection={type:'hand',idx:i};updateTradeButtonState();updateSpecialUI();
             };
             hDisplay.appendChild(card);
         });
+        if(isOnline&&!isMyTurn()){const note=document.createElement('div');note.style.cssText='width:100%;font-size:10px;color:#444;letter-spacing:2px;text-align:center;padding:5px 0;';note.innerText=`WAITING FOR ${p.name.toUpperCase()} — YOUR HAND STAYS PRIVATE`;hDisplay.appendChild(note);}
     }
 
     updateTradeButtonState();
@@ -4356,7 +4374,7 @@ function endAction(apCost = 1) {
             if (game.abilityMode) tickFrozen();
 
             // Sync AFTER advancing so remote gets ap=3, never ap=0
-            if (onlineConnected()) sendOnline({ type: 'MOVE', gameState: game });
+            if (onlineConnected()) sendStateToAll();
 
             render();
             showTurnNotification(game.players[game.currentTurn]);
@@ -4364,7 +4382,7 @@ function endAction(apCost = 1) {
         }, 350);
     } else {
         game.awakenTarget = null;
-        if (onlineConnected()) sendOnline({ type: 'MOVE', gameState: game });
+        if (onlineConnected()) sendStateToAll();
         render();
     }
 }
@@ -4594,9 +4612,8 @@ function requestVote(action) {
         }
         return;
     }
-    // Online: send vote request
-    sendOnline({ type:'VOTE_REQUEST', action, requester: isHost ? 'HOST':'GUEST', threshold: action === 'endgame' ? 0.75 : 0.5 });
-    showApToast('VOTE SENT — WAITING FOR RESPONSE');
+    showApToast('ONLINE MATCHES CONTINUE UNTIL A WINNER IS DECIDED');
+    return;
 }
 
 // ─── Menu canvas particles ──────────────────────────────────
@@ -4647,3 +4664,5 @@ function requestVote(action) {
         initCanvas();
     }
 })();
+
+window.addEventListener('pagehide',()=>{try{if(conn&&conn.open)conn.close();}catch(e){}try{onlineConnections.forEach(c=>{if(c&&c.open)c.close();});}catch(e){}try{if(peer)peer.destroy();}catch(e){}});

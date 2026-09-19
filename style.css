@@ -929,3 +929,33 @@ body { overflow-x: hidden; -webkit-overflow-scrolling: touch; }
 .cin-vote-btn{flex:1 1 58px;min-width:58px;max-width:120px;padding:8px 6px;box-sizing:border-box}
 @media(max-width:700px){.cin-vote-area{width:96vw;margin-top:10px}.cin-voters{grid-template-columns:repeat(2,minmax(0,1fr))!important}.cin-voter{padding:7px 5px}.cin-voter-name{font-size:9px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cin-vote-btn{font-size:9px!important;padding:7px 3px!important;min-width:0}.cin-combatants{gap:6px!important}.cin-card-img{width:72px!important;height:102px!important}.cin-vs{font-size:32px!important}}
 @media(max-width:390px){.cin-voters{grid-template-columns:1fr 1fr!important}.cin-vote-area{padding:0 3px}.cin-card-img{width:62px!important;height:88px!important}}
+
+/* === Voting modal responsive frame fix === */
+#battle-modal { padding: 18px; overflow-y: auto; overflow-x: hidden; }
+#battle-modal .modal-content { width: min(960px, 96vw); max-width: 960px; max-height: calc(100dvh - 36px); overflow-y: auto; overflow-x: hidden; padding: 20px; box-sizing: border-box; }
+#battle-modal .cin-arena { width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; }
+#battle-modal .cin-combatants { width: 100%; min-width: 0; }
+#battle-modal .cin-vote-area { width: 100%; max-width: 760px; margin: 16px auto 0; padding: 0; box-sizing: border-box; }
+#battle-modal .cin-voters { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px !important; width: 100%; }
+#battle-modal .cin-voter { min-width: 0; width: 100%; padding: 10px; box-sizing: border-box; }
+#battle-modal .cin-voter-btns { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 6px; }
+#battle-modal .cin-vote-btn { flex: 1 1 0; min-width: 0; max-width: none; padding: 8px 4px; }
+@media (max-width:700px) {
+  #battle-modal { padding: 6px; align-items: center; }
+  #battle-modal .modal-content { width: 100%; max-height: calc(100dvh - 12px); padding: 10px 6px; border-radius: 12px; }
+  #battle-modal .cin-arena { padding: 8px 2px 4px !important; }
+  #battle-modal .cin-combatants { gap: 4px !important; align-items: center; }
+  #battle-modal .cin-side { max-width: 38% !important; gap: 3px !important; }
+  #battle-modal .cin-vs-wrap { width: 54px !important; }
+  #battle-modal .cin-vs { font-size: 30px !important; }
+  #battle-modal .cin-count { font-size: 9px !important; padding: 2px 5px !important; }
+  #battle-modal .cin-clash { font-size: 9px !important; letter-spacing: 1px !important; }
+  #battle-modal .cin-card-img { width: min(25vw,82px) !important; height: min(35vw,116px) !important; }
+  #battle-modal .cin-card-name { font-size: 9px !important; }
+  #battle-modal .cin-vote-area { margin-top: 8px; }
+  #battle-modal .cin-voters { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 6px !important; }
+  #battle-modal .cin-voter { padding: 6px 4px; }
+  #battle-modal .cin-voter-name { font-size: 8px !important; letter-spacing: 1px !important; margin-bottom: 5px !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #battle-modal .cin-vote-btn { font-size: 8px !important; padding: 7px 2px !important; letter-spacing: 0 !important; }
+  #battle-modal .cin-vote-status { font-size: 9px !important; margin-top: 8px !important; }
+}
