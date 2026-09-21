@@ -1263,15 +1263,43 @@ function mergeIncomingState(incoming,sourceConn){
     }
 }
 function removeDisconnectedPlayer(connection){
-    if(!isHost||!game.players?.length)return; const seat=seatForConnection(connection);
-    if(seat<0||!game.players[seat]||game.players[seat].eliminated)return; const leaving=game.players[seat];
-    leaving.eliminated=true;leaving.hand=[];leaving.handCount=0;
-    game.grid.forEach(t=>{if(t&&t.owner===leaving.color){t.unit=null;t.owner='neutral';}});
-    addLog(`🚪 <b>${leaving.name}</b> left and was removed.`);
-    if(game.currentTurn===seat){let next=(seat+1)%game.players.length,guard=0;while(game.players[next]?.eliminated&&guard++<game.players.length)next=(next+1)%game.players.length;game.currentTurn=next;game.ap=3;game.selection={type:null,idx:null};}
-    checkElimination();sendStateToAll();render();startTurnTimer();
+    if(!isHost||!game.players?.length)return;
+    const seat=seatForConnection(connection);
+    if(seat<0||!game.players[seat]||game.players[seat].eliminated)return;
+
+    const leaving=game.players[seat];
+    leaving.eliminated=true;
+    leaving.hand=[];
+    leaving.handCount=0;
+
+    // Release everything owned by the player who left.
+    game.grid.forEach(t=>{
+        if(t&&t.owner===leaving.color){
+            t.unit=null;
+            t.owner='neutral';
+        }
+    });
+
+    addLog(`🚪 <b>${leaving.name}</b> left the browser and was removed from the match.`);
+
+    // Never leave the match stuck waiting for a player who has gone away.
+    if(game.currentTurn===seat){
+        let next=(seat+1)%game.players.length,guard=0;
+        while(game.players[next]?.eliminated&&guard++<game.players.length)
+            next=(next+1)%game.players.length;
+        game.currentTurn=next;
+        game.ap=3;
+        game.selection={type:null,idx:null};
+        clearTurnTimer();
+    }
+
+    checkElimination();
+    sendStateToAll();
+    render();
+    startTurnTimer();
 }
 function createOnlineGame(onlineMode) {
+    _onlineLeaveSent = false;
     isHost = true;
     game.votingMode = (onlineMode === 'voting');
     window._guestName = 'Player 2';
@@ -1327,6 +1355,7 @@ function createOnlineGame(onlineMode) {
 }
 
 function joinOnlineGame() {
+    _onlineLeaveSent = false;
     const code = document.getElementById('join-code')?.value.trim().toUpperCase();
     if (!code) { alert('Enter a room code first.'); return; }
     isHost = false;
@@ -1383,6 +1412,10 @@ function cancelOnlineSetup() {
 }
 
 function handleIncomingData(data, sourceConn = null) {
+    if (data.type === 'LEAVE_GAME') {
+        if (isHost && sourceConn) removeDisconnectedPlayer(sourceConn);
+        return;
+    }
     if (data.type === 'ROOM_FULL') { alert('This online room is full (4/4 players).'); cancelOnlineSetup(); return; }
     if (data.type === 'SET_MODE') {
         // Guest: host has set mode. Show a "waiting" screen so only host configures game.
@@ -1396,7 +1429,15 @@ function handleIncomingData(data, sourceConn = null) {
         if (el) el.innerText = '✅ NAME SET — WAITING FOR HOST TO START...';
     }
     if (data.type === 'START_GAME') {
+        // START_GAME is seat-filtered by the host. Keep every other hand empty
+        // on this device so opponents' cards cannot be rendered accidentally.
         game = data.gameState;
+        game.players?.forEach((p, i) => {
+            if (i !== data.guestSeatIndex) p.hand = [];
+            p.handCount = Number.isFinite(p.handCount)
+                ? p.handCount
+                : (Array.isArray(p.hand) ? p.hand.length : 0);
+        });
         game.mySeatIndex = data.guestSeatIndex; // which players[] index is the guest
         _navHistory = ['menu', 'game-screen'];
         _hideOnlineOverlay();
@@ -3432,14 +3473,35 @@ function clearAbilityPending() {
 }
 
 function buildOnlineVotePanel(col1) {
-    const mySeat = (typeof game.mySeatIndex === 'number') ? game.mySeatIndex : 0;
+    const mySeat = (typeof game.mySeatIndex === 'number') ? game.mySeatIndex : (isHost ? 0 : 1);
     const active = game.players.map((p,i)=>({p,i})).filter(x=>!x.p.eliminated);
-    return `<div class="cin-vote-area"><div class="cin-vote-title">— VOTE WHO WINS —</div><div class="cin-voters">${active.map(({p,i})=>{
-        const mine=i===mySeat, role=`p${i}`;
-        return `<div class="cin-voter" id="voter-${role}"><div class="cin-voter-name" style="color:${mine?'#4dff88':'#888'}">${mine?'YOU — ':''}${p.name}</div><div class="cin-voter-btns"><button class="cin-vote-btn" ${mine?'':'disabled'} style="border-color:${mine?col1:'#333'};color:${mine?col1:'#444'}" onclick="castOnlineBattleVote('atk','${role}',this)">⚔️ ATK</button><button class="cin-vote-btn" ${mine?'':'disabled'} style="border-color:${mine?'#ff4d4d':'#333'};color:${mine?'#ff4d4d':'#444'}" onclick="castOnlineBattleVote('def','${role}',this)">🛡️ DEF</button></div></div>`;
-    }).join('')}</div><div id="battle-vote-status" class="cin-vote-status">Votes in: 0/${active.length} — waiting...</div></div>`;
-}
 
+    return `<div class="cin-vote-area online-vote-frame">
+        <div class="cin-vote-title">BATTLE VOTE</div>
+        <div class="cin-vote-subtitle">EVERY ACTIVE PLAYER MUST CHOOSE</div>
+
+        <div class="cin-vote-matchup">
+            <div class="cin-vote-side cin-vote-side-atk"><span>⚔️</span><b>ATTACKER</b></div>
+            <div class="cin-vote-side-divider">VS</div>
+            <div class="cin-vote-side cin-vote-side-def"><span>🛡️</span><b>DEFENDER</b></div>
+        </div>
+
+        <div class="cin-voters">${active.map(({p,i})=>{
+            const mine=i===mySeat, role=`p${i}`;
+            return `<div class="cin-voter ${mine?'is-you':''}" id="voter-${role}">
+                <div class="cin-voter-name" style="color:${mine?'#4dff88':'#777'}">${mine?'YOU — ':''}${p.name}</div>
+                <div class="cin-voter-btns">
+                    <button class="cin-vote-btn" ${mine?'':'disabled'} style="border-color:${mine?col1:'#222'};color:${mine?col1:'#444'}" onclick="castOnlineBattleVote('atk','${role}',this)">⚔️ ATTACKER</button>
+                    <button class="cin-vote-btn" ${mine?'':'disabled'} style="border-color:${mine?'#ff4d4d':'#222'};color:${mine?'#ff4d4d':'#444'}" onclick="castOnlineBattleVote('def','${role}',this)">🛡️ DEFENDER</button>
+                </div>
+            </div>`;
+        }).join('')}</div>
+
+        <div id="battle-vote-status" class="cin-vote-status">
+            Votes in: 0/${active.length} — waiting for all players
+        </div>
+    </div>`;
+}
 // ─── Online voting battle functions ──────────────────────────
 // Called when a player clicks their vote button in the voting modal
 function castOnlineBattleVote(side, voterRole, btn) {
@@ -4665,4 +4727,21 @@ function requestVote(action) {
     }
 })();
 
-window.addEventListener('pagehide',()=>{try{if(conn&&conn.open)conn.close();}catch(e){}try{onlineConnections.forEach(c=>{if(c&&c.open)c.close();});}catch(e){}try{if(peer)peer.destroy();}catch(e){}});
+let _onlineLeaveSent = false;
+
+function announceOnlineLeave(){
+    if(_onlineLeaveSent || !onlineConnected()) return;
+    _onlineLeaveSent = true;
+    try {
+        if(!isHost && conn && conn.open) conn.send({type:'LEAVE_GAME'});
+    } catch(e) {}
+}
+
+// Closing, refreshing, navigating away, or closing the browser triggers this.
+// The host also keeps the normal connection-close handler as a fallback.
+window.addEventListener('pagehide',()=>{
+    announceOnlineLeave();
+    try{if(conn&&conn.open)conn.close();}catch(e){}
+    try{onlineConnections.forEach(c=>{if(c&&c.open)c.close();});}catch(e){}
+    try{if(peer)peer.destroy();}catch(e){}
+});
