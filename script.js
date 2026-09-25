@@ -1377,11 +1377,27 @@ function handleIncomingData(data, sourceConn = null) {
         render();
     }
     if (data.type === 'MOVE') {
+        // Host-authoritative turn ownership: a guest may update state only during its own seat's turn.
+        if (isHost && sourceConn) {
+            const sourceSeat = onlinePeerSeats[sourceConn.peer];
+            let expectedNext = Number.isInteger(sourceSeat) ? (sourceSeat + 1) % game.players.length : -1;
+            let guard = 0;
+            while (expectedNext >= 0 && game.players[expectedNext]?.eliminated && guard < game.players.length) {
+                expectedNext = (expectedNext + 1) % game.players.length; guard++;
+            }
+            const incomingTurn = data.gameState?.currentTurn;
+            const legalTurnState = incomingTurn === sourceSeat || incomingTurn === expectedNext;
+            if (!Number.isInteger(sourceSeat) || sourceSeat !== game.currentTurn || !legalTurnState) {
+                console.warn('Rejected out-of-turn online state update', { sourceSeat, currentTurn: game.currentTurn, incomingTurn });
+                sendOnline({ type:'MOVE', gameState: game }, sourceConn);
+                return;
+            }
+        }
         const prevTurn = game.currentTurn;
         const localSeat = game.mySeatIndex;
         game = data.gameState;
         game.mySeatIndex = localSeat;
-        // Host is the hub: forward a guest's valid state update to the other guests.
+        // Host is the hub: forward only an accepted guest state update.
         if (isHost && sourceConn) sendOnline({ type:'MOVE', gameState: game }, null, sourceConn);
         const battleModal = document.getElementById('battle-modal');
         const battleIsOpen = battleModal && battleModal.style.display === 'flex';
@@ -1422,20 +1438,60 @@ function handleIncomingData(data, sourceConn = null) {
         _applyVoteResult(data.approved, data.action, data.yesVotes, data.needed);
     }
     if (data.type === 'BATTLE_VOTE_CAST') {
-        if (isHost && sourceConn) sendOnline(data, null, sourceConn);
+        if (isHost && sourceConn) {
+            const sourceSeat = onlinePeerSeats[sourceConn.peer];
+            if (!Number.isInteger(sourceSeat) || data.voter !== `p${sourceSeat}`) {
+                console.warn('Rejected vote submitted for another player');
+                return;
+            }
+            sendOnline(data, null, sourceConn);
+        }
         handleBattleVoteCast(data.side, data.voter);
     }
     if (data.type === 'BATTLE_SHOW') {
-        if (isHost && sourceConn) sendOnline(data, null, sourceConn);
+        if (isHost && sourceConn) {
+            const sourceSeat = onlinePeerSeats[sourceConn.peer];
+            const atkTile = game.grid[data.atkIdx];
+            const defTile = game.grid[data.defIdx];
+            if (!Number.isInteger(sourceSeat) || sourceSeat !== game.currentTurn || !atkTile?.unit || atkTile.owner !== game.players[sourceSeat]?.color || !defTile?.unit) {
+                console.warn('Rejected invalid/out-of-turn battle request');
+                sendOnline({ type:'MOVE', gameState: game }, sourceConn);
+                return;
+            }
+            sendOnline(data, null, sourceConn);
+        }
         // Standard online: every other player sees the same battle modal
         window.currentAtkIdx = data.atkIdx;
         window.currentDefIdx = data.defIdx;
         window.isNeutralTarget = data.isNeutral;
         window.isBattleFromHand = false;
         _openGuestBattleModal(data, false); // false = standard (not voting)
+        // If a guest initiated this battle, the host is authoritative and resolves it exactly once.
+        if (isHost && sourceConn) {
+            const sourceSeat = onlinePeerSeats[sourceConn.peer];
+            const atkTile = game.grid[data.atkIdx];
+            const defTile = game.grid[data.defIdx];
+            const validOwner = Number.isInteger(sourceSeat) && sourceSeat === game.currentTurn && atkTile?.unit && atkTile.owner === game.players[sourceSeat]?.color && defTile?.unit;
+            if (validOwner) {
+                const analysis = getBattleAnalysis(atkTile.unit, defTile.unit);
+                setTimeout(() => resolveManual(analysis.atkWins), 2200);
+            } else {
+                console.warn('Rejected invalid guest battle request');
+            }
+        }
     }
     if (data.type === 'BATTLE_VOTE') {
-        if (isHost && sourceConn) sendOnline(data, null, sourceConn);
+        if (isHost && sourceConn) {
+            const sourceSeat = onlinePeerSeats[sourceConn.peer];
+            const atkTile = game.grid[data.atkIdx];
+            const defTile = game.grid[data.defIdx];
+            if (!Number.isInteger(sourceSeat) || sourceSeat !== game.currentTurn || !atkTile?.unit || atkTile.owner !== game.players[sourceSeat]?.color || !defTile?.unit) {
+                console.warn('Rejected invalid/out-of-turn voting battle request');
+                sendOnline({ type:'MOVE', gameState: game }, sourceConn);
+                return;
+            }
+            sendOnline(data, null, sourceConn);
+        }
         window.currentAtkIdx = data.atkIdx;
         window.currentDefIdx = data.defIdx;
         window.isNeutralTarget = data.isNeutral;
@@ -2557,50 +2613,67 @@ function nameHash(str) {
     return h;
 }
 
+function getUnitMatchupRating(unit) {
+    const tier = unit.tier || 'common';
+    const tierBase = (TIER_SCORE[tier] || 1) * 100;
+    const ability = (typeof getAbility === 'function') ? getAbility(unit.name) : null;
+    const abilityWeights = { shield:18, dodge:17, revive:20, aoe:16, regen:13, copy:14, freeze:15, steal:14, teleport:12, execute:19, counter:16 };
+    const abilityBonus = ability ? (abilityWeights[ability.type] || 10) : 0;
+    // Later/awakened forms are explicitly represented by nextForm chains/names in the card data.
+    const formText = `${unit.name || ''} ${unit.tip || ''}`.toLowerCase();
+    const formBonus = /(awaken|bankai|sage|gear|kcm|six paths|dms|dragon|ifrit|soul king|shogun|rinnegan|juubito|8 gates)/.test(formText) ? 8 : 0;
+    // Stable character matchup component. It never depends on who attacked first.
+    const characterBonus = nameHash((unit.name || '').toLowerCase()) % 11;
+    return { total:tierBase + abilityBonus + formBonus + characterBonus, tierBase, abilityBonus, formBonus, characterBonus, ability };
+}
+
 function getBattleAnalysis(atkUnit, defUnit) {
     const as = unitScore(atkUnit), ds = unitScore(defUnit);
-    const total = as + ds;
     const tierNames = { common:'Common', rare:'Rare', epic:'Epic', mythic:'Mythic', legendary:'Legendary', ultra:'Ultra', god:'God' };
-    const aTier = tierNames[atkUnit.tier || 'common'];
-    const dTier = tierNames[defUnit.tier || 'common'];
+    const aTier = tierNames[atkUnit.tier || 'common'] || 'Common';
+    const dTier = tierNames[defUnit.tier || 'common'] || 'Common';
 
-    let atkWins, reasoning, tieMethod = '';
-
-    if (as === ds) {
-        // Equal tier — use attacker bonus (attacker strikes first) + name hash tiebreak
-        // Attacker gets +0.5 advantage (striking first matters)
-        // Name hash determines the rest — deterministic, same matchup always same result
-        const hash = nameHash(atkUnit.name + defUnit.name);
-        const atkFavoured = (hash % 2 === 0); // deterministic coin
-        atkWins = atkFavoured;
-
-        const atkNameLen = atkUnit.name.length, defNameLen = defUnit.name.length;
-        const flavours = [
-            `${atkUnit.name} strikes first as the attacker — in an even fight, initiative is everything.`,
-            `Both are ${aTier} tier, but ${atkFavoured ? atkUnit.name : defUnit.name} has fought this type of battle before.`,
-            `Equal power, equal tier — ${atkFavoured ? atkUnit.name + ' lands the decisive first blow' : defUnit.name + ' weathers the attack and counters'}.`,
-            `A true clash of equals. The ${atkFavoured ? 'attacker' : 'defender'}'s positioning gives ${atkFavoured ? atkUnit.name : defUnit.name} the edge.`,
-        ];
-        reasoning = flavours[hash % flavours.length];
-        tieMethod = `Both units are ${aTier}. Decided by first-strike advantage + matchup history.`;
-    } else if (as > ds * 2) {
-        atkWins = true;
-        reasoning = `${atkUnit.name} (${aTier}) completely outclasses ${defUnit.name} (${dTier}) — a ${as} vs ${ds} power gap leaves no contest.`;
-    } else if (as > ds) {
-        atkWins = Math.random() < 0.75; // stronger wins 75% of the time
-        reasoning = `${atkUnit.name} (${aTier}) has a clear power advantage over ${defUnit.name} (${dTier}) — power ${as} vs ${ds}.`;
-    } else if (ds > as * 2) {
-        atkWins = false;
-        reasoning = `${defUnit.name} (${dTier}) completely outclasses ${atkUnit.name} (${aTier}) — a ${ds} vs ${as} power gap leaves no contest.`;
-    } else {
-        atkWins = Math.random() < 0.25; // weaker attacker wins only 25% of the time
-        reasoning = `${defUnit.name} (${dTier}) holds the power advantage over ${atkUnit.name} (${aTier}) — power ${ds} vs ${as}.`;
+    // Different rarity: the stronger rarity ALWAYS wins in Standard Online.
+    if (as !== ds) {
+        const atkWins = as > ds;
+        const winner = atkWins ? atkUnit : defUnit;
+        const loser = atkWins ? defUnit : atkUnit;
+        const winnerTier = atkWins ? aTier : dTier;
+        const loserTier = atkWins ? dTier : aTier;
+        return {
+            atkWins, aTier, dTier,
+            atkWinChance: atkWins ? 10 : 0,
+            defWinChance: atkWins ? 0 : 10,
+            reasoning: `${winner.name} wins because ${winnerTier} is a higher rarity than ${loser.name}'s ${loserTier}. Higher rarity has priority in Standard Online.`,
+            tieMethod: ''
+        };
     }
 
-    const atkWinChance = as === ds ? 5 : Math.round((as / total) * 10);
-    const defWinChance = 10 - atkWinChance;
-
-    return { atkWins, atkWinChance, defWinChance, reasoning, tieMethod, aTier, dTier };
+    // Same rarity: compare a deterministic character/form/ability matchup rating.
+    // No attacker/first-strike bonus is used.
+    const ar = getUnitMatchupRating(atkUnit);
+    const dr = getUnitMatchupRating(defUnit);
+    let atkWins;
+    if (ar.total !== dr.total) atkWins = ar.total > dr.total;
+    else {
+        // Extremely rare exact tie: symmetric name ordering, still independent of attacker/defender role.
+        const aKey = `${atkUnit.name || ''}`.toLowerCase();
+        const dKey = `${defUnit.name || ''}`.toLowerCase();
+        atkWins = aKey.localeCompare(dKey) < 0;
+    }
+    const winner = atkWins ? atkUnit : defUnit;
+    const loser = atkWins ? defUnit : atkUnit;
+    const wr = atkWins ? ar : dr;
+    const lr = atkWins ? dr : ar;
+    const details = [];
+    if (wr.abilityBonus !== lr.abilityBonus && wr.ability) details.push(`${winner.name}'s ${wr.ability.name} ability gives the stronger combat profile`);
+    if (wr.formBonus !== lr.formBonus && wr.formBonus > lr.formBonus) details.push(`${winner.name} is represented in a more advanced/awakened form`);
+    if (!details.length) details.push(`${winner.name} has the higher stable character matchup rating (${wr.total} vs ${lr.total})`);
+    return {
+        atkWins, aTier, dTier, atkWinChance:5, defWinChance:5,
+        reasoning: `Both fighters are ${aTier}. ${details.join('; ')}. ${winner.name} wins this matchup.`,
+        tieMethod: 'Same-rarity battles use character form + ability + stable matchup rating. Attacking first gives no advantage.'
+    };
 }
 
 function openCinematicBattle(allies, defAllies, countLabel) {
@@ -2634,22 +2707,15 @@ function openCinematicBattle(allies, defAllies, countLabel) {
         // Standard online: stronger unit wins automatically based on tier score.
         // Calculate winner immediately and show result — no button needed.
         const atkUnit = allies[0], defUnit = defAllies[0];
-        const as = unitScore(atkUnit), ds = unitScore(defUnit);
-        const atkWins = as >= ds; // attacker wins ties (first-strike advantage)
-
-        const tierNames = { common:'Common', rare:'Rare', epic:'Epic', mythic:'Mythic', legendary:'Legendary', ultra:'Ultra', god:'God' };
-        const aTier = tierNames[atkUnit.tier || 'common'] || 'Common';
-        const dTier = tierNames[defUnit.tier || 'common'] || 'Common';
-
-        let reasoning;
-        if (as > ds)       reasoning = `${atkUnit.name} (${aTier}, ${as}pts) overpowers ${defUnit.name} (${dTier}, ${ds}pts).`;
-        else if (ds > as)  reasoning = `${defUnit.name} (${dTier}, ${ds}pts) overpowers ${atkUnit.name} (${aTier}, ${as}pts).`;
-        else               reasoning = `Equal power (both ${aTier}, ${as}pts) — attacker strikes first.`;
+        const analysis = getBattleAnalysis(atkUnit, defUnit);
+        const atkWins = analysis.atkWins;
+        const reasoning = analysis.reasoning;
 
         btnHTML = `
         <div class="cin-analysis">
             <div style="font-size:11px;color:#555;letter-spacing:3px;margin-bottom:8px;">AUTO RESOLVE</div>
             <div class="cin-analysis-text">${reasoning}</div>
+            ${analysis.tieMethod ? `<div class="cin-tie-method">${analysis.tieMethod}</div>` : ''}
             <div style="margin-top:12px;font-size:18px;font-weight:900;color:${atkWins?col1:'#ff4d4d'};letter-spacing:2px;">
                 ${atkWins ? '⚔️ '+atkUnit.name.toUpperCase()+' WINS' : '🛡️ '+defUnit.name.toUpperCase()+' WINS'}
             </div>
@@ -2707,13 +2773,13 @@ function openCinematicBattle(allies, defAllies, countLabel) {
             .battle-shake { animation:battle-shake 0.5s ease-out !important; }
             .cin-arena { position:relative;width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:16px 8px 8px; }
             .cin-bg-glow { position:absolute;inset:0;pointer-events:none;z-index:0; }
-            .cin-combatants { display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;gap:8px;width:100%;position:relative;z-index:1;overflow:hidden; }
-            .cin-side { display:flex;gap:6px;flex-wrap:wrap;justify-content:center;flex:1;min-width:0;max-width:42%; }
-            .cin-card { display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;width:100%; }
+            .cin-combatants { display:grid;grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr);align-items:center;justify-items:center;gap:12px;width:100%;max-width:720px;position:relative;z-index:1;overflow:visible; }
+            .cin-side { display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:flex-start;min-width:0;width:100%;max-width:290px; }
+            .cin-card { display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;width:min(100%,150px);flex:0 1 150px; }
             .cin-card.slide-in-left  { animation:slide-in-left  0.45s cubic-bezier(.22,1,.36,1) forwards; }
             .cin-card.slide-in-right { animation:slide-in-right 0.45s cubic-bezier(.22,1,.36,1) forwards; }
-            .cin-card-img-wrap { position:relative;border-radius:10px;overflow:hidden;box-shadow:0 0 16px var(--c1,#4d79ff);width:100%; }
-            .cin-card-img { width:100%;max-width:130px;aspect-ratio:2/3;object-fit:cover;object-position:center top;display:block; }
+            .cin-card-img-wrap { position:relative;border-radius:10px;overflow:hidden;box-shadow:0 0 16px var(--c1,#4d79ff);width:min(100%,150px);aspect-ratio:2/3;background:#08080d; }
+            .cin-card-img { width:100%;height:100%;max-width:none;object-fit:cover;object-position:center top;display:block; }
             .cin-card-glow { position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,0.6)); }
             .cin-card-name { font-size:10px;font-weight:900;letter-spacing:0.5px;text-align:center;color:white;text-transform:uppercase;text-shadow:0 0 8px rgba(255,255,255,0.5);width:100%;word-break:break-word; }
             .cin-vs-wrap { display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;width:72px;z-index:2; }
@@ -2743,6 +2809,33 @@ function openCinematicBattle(allies, defAllies, countLabel) {
             .cin-vote-btn.voted { opacity:0.4;pointer-events:none; }
             .cin-vote-btn.selected { opacity:1 !important;font-weight:900; }
             .cin-vote-status { margin-top:14px;font-size:12px;letter-spacing:2px;color:#555; }
+            @media (max-width:700px) {
+                .cin-arena { padding:8px 2px 4px; }
+                .cin-combatants { grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr);gap:6px;max-width:100%; }
+                .cin-side { max-width:130px;gap:4px; }
+                .cin-card { width:min(100%,96px);flex-basis:96px;gap:4px; }
+                .cin-card-img-wrap { width:min(100%,96px);border-radius:8px; }
+                .cin-card-name { font-size:8px; }
+                .cin-vs-wrap { width:54px;gap:4px; }
+                .cin-vs { font-size:32px; }
+                .cin-count { font-size:9px;padding:2px 5px; }
+                .cin-clash { font-size:8px;letter-spacing:1px; }
+                .cin-vote-area { width:100%;padding:0 2px;margin-top:10px; }
+                .cin-voters { grid-template-columns:repeat(2,minmax(0,1fr));gap:6px; }
+                .cin-voter { padding:7px 5px; }
+                .cin-voter-name { font-size:9px; }
+                .cin-vote-btn { font-size:9px;padding:7px 2px; }
+                .cin-analysis { margin-top:10px;padding:0 6px; }
+                .cin-analysis-text { font-size:11px; }
+            }
+            @media (max-width:390px) {
+                .cin-combatants { grid-template-columns:minmax(0,1fr) 44px minmax(0,1fr);gap:4px; }
+                .cin-side { max-width:112px; }
+                .cin-card { width:min(100%,82px);flex-basis:82px; }
+                .cin-card-img-wrap { width:min(100%,82px); }
+                .cin-vs-wrap { width:44px; }
+                .cin-vs { font-size:27px; }
+            }
         `;
         document.head.appendChild(style);
     }
@@ -2901,19 +2994,14 @@ function _openGuestBattleModal(data, isVoting) {
         bottomHTML = buildOnlineVotePanel(col1);
     } else {
         // Standard online: show auto-resolve result (mirror what host sees)
-        const as = unitScore(atkUnit), ds = unitScore(defUnit);
-        const atkWins = as >= ds;
-        const tierNames = { common:'Common', rare:'Rare', epic:'Epic', mythic:'Mythic', legendary:'Legendary', ultra:'Ultra', god:'God' };
-        const aTier = tierNames[atkUnit.tier || 'common'] || 'Common';
-        const dTier = tierNames[defUnit.tier || 'common'] || 'Common';
-        let reasoning;
-        if (as > ds)      reasoning = `${atkUnit.name} (${aTier}, ${as}pts) overpowers ${defUnit.name} (${dTier}, ${ds}pts).`;
-        else if (ds > as) reasoning = `${defUnit.name} (${dTier}, ${ds}pts) overpowers ${atkUnit.name} (${aTier}, ${as}pts).`;
-        else              reasoning = `Equal power (both ${aTier}, ${as}pts) — attacker strikes first.`;
+        const analysis = getBattleAnalysis(atkUnit, defUnit);
+        const atkWins = analysis.atkWins;
+        const reasoning = analysis.reasoning;
         bottomHTML = `
         <div class="cin-analysis">
             <div style="font-size:11px;color:#555;letter-spacing:3px;margin-bottom:8px;">AUTO RESOLVE</div>
             <div class="cin-analysis-text">${reasoning}</div>
+            ${analysis.tieMethod ? `<div class="cin-tie-method">${analysis.tieMethod}</div>` : ''}
             <div style="margin-top:12px;font-size:18px;font-weight:900;color:${atkWins?col1:'#ff4d4d'};letter-spacing:2px;">
                 ${atkWins ? '⚔️ '+atkUnit.name.toUpperCase()+' WINS' : '🛡️ '+defUnit.name.toUpperCase()+' WINS'}
             </div>
