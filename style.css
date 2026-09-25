@@ -921,245 +921,38 @@ body { overflow-x: hidden; -webkit-overflow-scrolling: touch; }
     .menu-logo em { font-size: 2.6rem; }
 }
 
-/* Multiplayer voting layout fix */
-.cin-vote-area{width:min(94vw,760px);margin:18px auto 0;position:relative;z-index:20;text-align:center;padding:0 8px;box-sizing:border-box}
-.cin-voters{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px!important;width:100%}
-.cin-voter{min-width:0;background:rgba(0,0,0,.5);border:1px solid #222;border-radius:10px;padding:10px;box-sizing:border-box}
-.cin-voter-btns{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}
-.cin-vote-btn{flex:1 1 58px;min-width:58px;max-width:120px;padding:8px 6px;box-sizing:border-box}
-@media(max-width:700px){.cin-vote-area{width:96vw;margin-top:10px}.cin-voters{grid-template-columns:repeat(2,minmax(0,1fr))!important}.cin-voter{padding:7px 5px}.cin-voter-name{font-size:9px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cin-vote-btn{font-size:9px!important;padding:7px 3px!important;min-width:0}.cin-combatants{gap:6px!important}.cin-card-img{width:72px!important;height:102px!important}.cin-vs{font-size:32px!important}}
-@media(max-width:390px){.cin-voters{grid-template-columns:1fr 1fr!important}.cin-vote-area{padding:0 3px}.cin-card-img{width:62px!important;height:88px!important}}
 
-/* === Voting modal responsive frame fix === */
-#battle-modal { padding: 18px; overflow-y: auto; overflow-x: hidden; }
-#battle-modal .modal-content { width: min(960px, 96vw); max-width: 960px; max-height: calc(100dvh - 36px); overflow-y: auto; overflow-x: hidden; padding: 20px; box-sizing: border-box; }
-#battle-modal .cin-arena { width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden; }
-#battle-modal .cin-combatants { width: 100%; min-width: 0; }
-#battle-modal .cin-vote-area { width: 100%; max-width: 760px; margin: 16px auto 0; padding: 0; box-sizing: border-box; }
-#battle-modal .cin-voters { display: grid !important; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px !important; width: 100%; }
-#battle-modal .cin-voter { min-width: 0; width: 100%; padding: 10px; box-sizing: border-box; }
-#battle-modal .cin-voter-btns { display: flex; flex-direction: row; flex-wrap: nowrap; gap: 6px; }
-#battle-modal .cin-vote-btn { flex: 1 1 0; min-width: 0; max-width: none; padding: 8px 4px; }
-@media (max-width:700px) {
-  #battle-modal { padding: 6px; align-items: center; }
-  #battle-modal .modal-content { width: 100%; max-height: calc(100dvh - 12px); padding: 10px 6px; border-radius: 12px; }
-  #battle-modal .cin-arena { padding: 8px 2px 4px !important; }
-  #battle-modal .cin-combatants { gap: 4px !important; align-items: center; }
-  #battle-modal .cin-side { max-width: 38% !important; gap: 3px !important; }
-  #battle-modal .cin-vs-wrap { width: 54px !important; }
-  #battle-modal .cin-vs { font-size: 30px !important; }
-  #battle-modal .cin-count { font-size: 9px !important; padding: 2px 5px !important; }
-  #battle-modal .cin-clash { font-size: 9px !important; letter-spacing: 1px !important; }
-  #battle-modal .cin-card-img { width: min(25vw,82px) !important; height: min(35vw,116px) !important; }
-  #battle-modal .cin-card-name { font-size: 9px !important; }
-  #battle-modal .cin-vote-area { margin-top: 8px; }
-  #battle-modal .cin-voters { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 6px !important; }
-  #battle-modal .cin-voter { padding: 6px 4px; }
-  #battle-modal .cin-voter-name { font-size: 8px !important; letter-spacing: 1px !important; margin-bottom: 5px !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  #battle-modal .cin-vote-btn { font-size: 8px !important; padding: 7px 2px !important; letter-spacing: 0 !important; }
-  #battle-modal .cin-vote-status { font-size: 9px !important; margin-top: 8px !important; }
-}
-
-
-/* ================================================================
-   ONLINE BATTLE VOTING — RESPONSIVE FRAME
-   ================================================================ */
-.online-vote-frame {
-    width: min(92vw, 680px);
-    margin: 20px auto 0;
-    padding: 18px;
-    border: 1px solid rgba(100,120,255,.28);
-    border-radius: 16px;
-    background:
-        linear-gradient(180deg, rgba(18,22,48,.96), rgba(7,8,18,.98));
-    box-shadow:
-        0 18px 55px rgba(0,0,0,.55),
-        inset 0 0 35px rgba(77,121,255,.06);
-    overflow: hidden;
-}
-
-.online-vote-frame .cin-vote-title {
-    color: #dfe5ff;
-    font-size: 15px;
-    letter-spacing: 4px;
-    margin-bottom: 5px;
-}
-
-.online-vote-frame .cin-vote-subtitle {
-    color: #555d78;
-    font-size: 9px;
-    letter-spacing: 2px;
-    margin-bottom: 14px;
-}
-
-.cin-vote-matchup {
-    display: grid;
-    grid-template-columns: 1fr 52px 1fr;
-    align-items: center;
-    gap: 8px;
-    margin: 0 auto 16px;
-    width: min(100%, 480px);
-}
-
-.cin-vote-side {
-    min-height: 46px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 9px 10px;
-    border: 1px solid #222;
-    border-radius: 9px;
-    background: rgba(0,0,0,.28);
-    font-size: 10px;
-    letter-spacing: 1.5px;
-}
-
-.cin-vote-side-atk { border-color: rgba(77,121,255,.3); color: #7e9cff; }
-.cin-vote-side-def { border-color: rgba(255,77,77,.3); color: #ff7777; }
-.cin-vote-side span { font-size: 18px; }
-.cin-vote-side-divider {
-    text-align: center;
-    color: #444;
-    font-size: 12px;
-    font-weight: 900;
-    letter-spacing: 1px;
-}
-
-.online-vote-frame .cin-voters {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0,1fr));
-    gap: 10px;
-}
-
-.online-vote-frame .cin-voter {
-    min-width: 0;
-    width: 100%;
-    padding: 12px;
-    border-radius: 11px;
-    background: rgba(0,0,0,.36);
-    border: 1px solid #20202b;
-}
-
-.online-vote-frame .cin-voter.is-you {
-    border-color: rgba(77,255,136,.28);
-    box-shadow: inset 0 0 18px rgba(77,255,136,.035);
-}
-
-.online-vote-frame .cin-voter-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 11px;
-    margin-bottom: 9px;
-}
-
-.online-vote-frame .cin-voter-btns {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 7px;
-}
-
-.online-vote-frame .cin-vote-btn {
-    min-width: 0;
-    min-height: 38px;
-    padding: 8px 6px;
-    font-size: 10px;
-    letter-spacing: .7px;
-    line-height: 1.15;
-}
-
-.online-vote-frame .cin-vote-btn:disabled {
-    cursor: default;
-}
-
-.online-vote-frame .cin-vote-status {
-    padding-top: 12px;
-    margin-top: 13px;
-    border-top: 1px solid #171722;
-    font-size: 10px;
-    line-height: 1.5;
-    color: #626276;
-}
+/* Online voting battle — responsive framing for desktop + mobile */
+#battle-modal { padding: 14px; box-sizing: border-box; overflow-y: auto; }
+#battle-modal .modal-content { margin: auto; box-sizing: border-box; }
+#battle-modal .cin-arena { width: 100%; max-width: 100%; overflow: hidden; }
+#battle-modal .cin-vote-area { width: min(100%, 760px); max-width: 760px; margin: 14px auto 0; padding: 0 10px; box-sizing: border-box; }
+#battle-modal .cin-voters { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px !important; width: 100%; }
+#battle-modal .cin-voter { min-width: 0 !important; width: 100%; max-width: 100%; padding: 10px; box-sizing: border-box; overflow: hidden; }
+#battle-modal .cin-voter-btns { display: grid !important; grid-template-columns: 1fr 1fr; gap: 6px; }
+#battle-modal .cin-vote-btn { min-width: 0 !important; width: 100%; padding: 8px 4px !important; box-sizing: border-box; }
 
 @media (max-width: 700px) {
-    .modal {
-        align-items: center;
-        padding: 8px;
-    }
-
-    .modal-content {
-        width: 100%;
-        max-width: 100% !important;
-        max-height: calc(100dvh - 16px);
-        overflow-y: auto;
-        padding: 10px !important;
-        border-radius: 15px;
-    }
-
-    .cin-arena {
-        padding: 8px 4px 6px !important;
-    }
-
-    .cin-combatants {
-        gap: 4px !important;
-    }
-
-    .cin-vote-area {
-        margin-top: 10px !important;
-    }
-
-    .online-vote-frame {
-        width: 100%;
-        padding: 13px 10px;
-        border-radius: 13px;
-    }
-
-    .online-vote-frame .cin-voters {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-
-    .online-vote-frame .cin-voter {
-        padding: 10px;
-    }
-
-    .online-vote-frame .cin-voter-btns {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .online-vote-frame .cin-vote-btn {
-        min-height: 42px;
-        font-size: 9px;
-    }
-
-    .cin-vote-matchup {
-        grid-template-columns: 1fr 38px 1fr;
-        gap: 5px;
-        margin-bottom: 11px;
-    }
-
-    .cin-vote-side {
-        min-height: 40px;
-        padding: 7px 4px;
-        font-size: 8px;
-        letter-spacing: .8px;
-    }
-
-    .cin-vote-side span { font-size: 15px; }
+    #battle-modal { padding: 8px; align-items: center; }
+    #battle-modal .modal-content { width: 100% !important; max-width: 100% !important; max-height: calc(100dvh - 16px) !important; padding: 8px !important; border-radius: 12px !important; }
+    #battle-modal .cin-arena { padding: 8px 2px 4px !important; }
+    #battle-modal .cin-combatants { gap: 4px !important; overflow: visible !important; }
+    #battle-modal .cin-side { max-width: 40% !important; }
+    #battle-modal .cin-vs-wrap { width: 54px !important; }
+    #battle-modal .cin-card-img { width: min(26vw, 88px) !important; height: auto !important; aspect-ratio: 2 / 3; }
+    #battle-modal .cin-vs { font-size: 30px !important; }
+    #battle-modal .cin-count { font-size: 9px !important; padding: 2px 5px !important; }
+    #battle-modal .cin-clash { font-size: 9px !important; letter-spacing: 1px !important; }
+    #battle-modal .cin-vote-area { width: 100%; margin-top: 10px; padding: 0 2px; }
+    #battle-modal .cin-voters { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; }
+    #battle-modal .cin-voter { padding: 7px 5px !important; }
+    #battle-modal .cin-voter-name { font-size: 9px !important; letter-spacing: 0 !important; }
+    #battle-modal .cin-vote-btn { font-size: 9px !important; padding: 7px 2px !important; }
+    #battle-modal .cin-vote-status { font-size: 10px !important; letter-spacing: 1px !important; margin-top: 8px !important; }
 }
 
-@media (max-width: 380px) {
-    .online-vote-frame .cin-voter-btns {
-        grid-template-columns: 1fr;
-    }
-
-    .online-vote-frame .cin-vote-btn {
-        min-height: 36px;
-    }
-
-    .cin-vote-matchup {
-        grid-template-columns: 1fr 28px 1fr;
-    }
+@media (max-width: 390px) {
+    #battle-modal .cin-card-img { width: min(24vw, 72px) !important; }
+    #battle-modal .cin-vs-wrap { width: 46px !important; }
+    #battle-modal .cin-vs { font-size: 26px !important; }
 }
