@@ -1222,6 +1222,8 @@ let isHost = false;
 let onlineConnections = []; // host can accept up to 3 guests (4 players total)
 let onlineGuestNames = {};  // peerId -> chosen player name
 let onlinePeerSeats = {};   // peerId -> players[] seat after the match starts
+// Device-local online identity. NEVER synchronized inside gameState.
+let localOnlineSeat = null;
 
 function onlineConnected() {
     return isHost ? onlineConnections.some(c => c && c.open) : !!(conn && conn.open);
@@ -1238,12 +1240,12 @@ function getOnlineGuestNames() {
 
 function isMyTurn() {
     if (!onlineConnected()) return true;
-    const myIdx = (typeof game.mySeatIndex === 'number') ? game.mySeatIndex : (isHost ? 0 : 1);
-    return game.currentTurn === myIdx;
+    return Number.isInteger(localOnlineSeat) && game.currentTurn === localOnlineSeat;
 }
 
 function createOnlineGame(onlineMode) {
     isHost = true;
+    localOnlineSeat = null;
     game.votingMode = (onlineMode === 'voting');
     window._guestName = 'Player 2';
     const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -1298,6 +1300,7 @@ function createOnlineGame(onlineMode) {
 }
 
 function joinOnlineGame() {
+    localOnlineSeat = null;
     const code = document.getElementById('join-code')?.value.trim().toUpperCase();
     if (!code) { alert('Enter a room code first.'); return; }
     isHost = false;
@@ -1368,7 +1371,8 @@ function handleIncomingData(data, sourceConn = null) {
     }
     if (data.type === 'START_GAME') {
         game = data.gameState;
-        game.mySeatIndex = data.guestSeatIndex; // which players[] index is the guest
+        localOnlineSeat = data.guestSeatIndex; // device-local identity; never trust a networked mySeatIndex
+        game.mySeatIndex = localOnlineSeat; // compatibility for older helpers only
         _navHistory = ['menu', 'game-screen'];
         _hideOnlineOverlay();
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1394,9 +1398,9 @@ function handleIncomingData(data, sourceConn = null) {
             }
         }
         const prevTurn = game.currentTurn;
-        const localSeat = game.mySeatIndex;
         game = data.gameState;
-        game.mySeatIndex = localSeat;
+        // Never accept another device's identity from synchronized state.
+        if (Number.isInteger(localOnlineSeat)) game.mySeatIndex = localOnlineSeat;
         // Host is the hub: forward only an accepted guest state update.
         if (isHost && sourceConn) sendOnline({ type:'MOVE', gameState: game }, null, sourceConn);
         const battleModal = document.getElementById('battle-modal');
@@ -1584,7 +1588,8 @@ function _submitGuestName() {
 
 function syncGameToGuest() {
     if (!isHost || !onlineConnected()) return;
-    const hostName = game.players[game.mySeatIndex]?.name || game.players[0]?.name;
+    const hostSeat = Number.isInteger(localOnlineSeat) ? localOnlineSeat : game.mySeatIndex;
+    const hostName = game.players[hostSeat]?.name || game.players[0]?.name;
     game.mySeatIndex = game.players.findIndex(p => p.name === hostName);
     onlineConnections.filter(c=>c&&c.open).forEach((c, idx) => {
         const guestName = onlineGuestNames[c.peer] || `Player ${idx+2}`;
@@ -1931,6 +1936,7 @@ function initGame() {
     if (onlineConnected()) {
         game.mySeatIndex = game.players.findIndex(p => p.name === hostName);
         if (game.mySeatIndex === -1) game.mySeatIndex = 0;
+        localOnlineSeat = game.mySeatIndex;
     }
 
     // 5. Start Game
@@ -2957,70 +2963,13 @@ function showBattleModal(atkIdx, defIdx) {
 }
 
 function _openGuestBattleModal(data, isVoting) {
-    const [col1, col2, clashWord] = getBattleTheme();
-    const modal = document.getElementById('battle-modal');
-    const content = modal.querySelector('.modal-content');
-    content.style.cssText = 'background:#050508;border:1px solid #262636;border-radius:16px;padding:12px;width:min(94vw,900px);max-width:900px;max-height:92vh;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;';
-
+    // Guests use EXACTLY the same cinematic renderer as the host.
+    // Only the local voting controls differ according to localOnlineSeat.
     const atkTile = game.grid[data.atkIdx];
     const defTile = game.grid[data.defIdx];
     const atkUnit = atkTile?.unit || { name: data.atkName || '?', img: '', tier: 'common' };
     const defUnit = defTile?.unit || { name: data.defName || '?', img: '', tier: 'common' };
-
-    const atkCardHTML = `<div class="cin-card slide-in-left">
-        <div class="cin-card-img-wrap" style="--c1:${col1}">
-            <img class="cin-card-img" src="${atkUnit.img || ''}" onerror="this.style.opacity='0'">
-            <div class="cin-card-glow"></div>
-        </div>
-        <div class="cin-card-name">${atkUnit.name}</div>
-    </div>`;
-
-    const defCardHTML = `<div class="cin-card slide-in-right">
-        <div class="cin-card-img-wrap" style="--c1:#ff4d4d">
-            <img class="cin-card-img" src="${defUnit.img || ''}" onerror="this.style.opacity='0'">
-            <div class="cin-card-glow"></div>
-        </div>
-        <div class="cin-card-name">${defUnit.name}</div>
-    </div>`;
-
-    const vsHTML = `<div class="cin-vs-wrap">
-        <div class="cin-vs" style="color:${col1};text-shadow:0 0 30px ${col1},0 0 60px ${col2};">VS</div>
-        <div class="cin-count" style="border-color:${col1};color:${col1};">${data.countLabel || '1v1'}</div>
-        <div class="cin-clash" style="color:${col2};text-shadow:0 0 20px ${col2};">${clashWord}</div>
-    </div>`;
-
-    let bottomHTML = '';
-    if (isVoting) {
-        bottomHTML = buildOnlineVotePanel(col1);
-    } else {
-        // Standard online: show auto-resolve result (mirror what host sees)
-        const analysis = getBattleAnalysis(atkUnit, defUnit);
-        const atkWins = analysis.atkWins;
-        const reasoning = analysis.reasoning;
-        bottomHTML = `
-        <div class="cin-analysis">
-            <div style="font-size:11px;color:#555;letter-spacing:3px;margin-bottom:8px;">AUTO RESOLVE</div>
-            <div class="cin-analysis-text">${reasoning}</div>
-            ${analysis.tieMethod ? `<div class="cin-tie-method">${analysis.tieMethod}</div>` : ''}
-            <div style="margin-top:12px;font-size:18px;font-weight:900;color:${atkWins?col1:'#ff4d4d'};letter-spacing:2px;">
-                ${atkWins ? '⚔️ '+atkUnit.name.toUpperCase()+' WINS' : '🛡️ '+defUnit.name.toUpperCase()+' WINS'}
-            </div>
-        </div>`;
-    }
-
-    content.innerHTML = `
-        <div class="cin-arena" style="--c1:${col1};--c2:${col2};">
-            <div class="cin-bg-glow" style="background:radial-gradient(ellipse at 30% 50%,${col1}22 0%,transparent 60%),radial-gradient(ellipse at 70% 50%,${col2}22 0%,transparent 60%);"></div>
-            <div class="cin-combatants">
-                <div class="cin-side cin-atk">${atkCardHTML}</div>
-                ${vsHTML}
-                <div class="cin-side cin-def">${defCardHTML}</div>
-            </div>
-            ${bottomHTML}
-        </div>`;
-
-    modal.style.display = 'flex';
-    setTimeout(() => { flashScreen(col1 + '88'); shakeScreen(); }, 350);
+    openCinematicBattle([atkUnit], [defUnit], data.countLabel || '1v1');
 }
 
 // =============================================
@@ -3536,7 +3485,7 @@ function clearAbilityPending() {
 }
 
 function buildOnlineVotePanel(col1) {
-    const mySeat = (typeof game.mySeatIndex === 'number') ? game.mySeatIndex : 0;
+    const mySeat = Number.isInteger(localOnlineSeat) ? localOnlineSeat : (isHost ? 0 : -1);
     const active = game.players.map((p,i)=>({p,i})).filter(x=>!x.p.eliminated);
     return `<div class="cin-vote-area"><div class="cin-vote-title">— VOTE WHO WINS —</div><div class="cin-voters">${active.map(({p,i})=>{
         const mine=i===mySeat, role=`p${i}`;
@@ -3947,10 +3896,10 @@ function render() {
     hDisplay.innerHTML = "";
 
     const isOnline = onlineConnected();
-    const myIdx = isOnline ? ((typeof game.mySeatIndex === 'number') ? game.mySeatIndex : (isHost ? 0 : 1)) : game.currentTurn;
-    // In online matches the hand panel belongs to THIS device, never to the current-turn player.
-    // This prevents an opponent's cards from appearing when their turn/state update arrives.
-    const handOwner = isOnline ? game.players[myIdx] : p;
+    const myIdx = isOnline ? localOnlineSeat : game.currentTurn;
+    // Online HAND is permanently bound to this browser's private seat identity.
+    // currentTurn and synchronized gameState can never switch which hand this device renders.
+    const handOwner = (isOnline && Number.isInteger(myIdx)) ? game.players[myIdx] : (isOnline ? null : p);
 
     if (!handOwner) {
         const lbl = document.createElement('div');
