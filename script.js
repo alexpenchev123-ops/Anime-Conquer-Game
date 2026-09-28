@@ -429,7 +429,6 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
             { name: "Killua", img: "hxh/killua.jpg", nextForm: "Killua (Godspeed)", cost: 1, tip: "⚡ AWAKENS → Killua (Godspeed) [1 sacrifice]" },
             { name: "Killua (Godspeed)", img: "hxh/killua1.jpg" },
             { name: "Kite", img: "hxh/kite.jpg" },
-            { name: "Ging", img: "hxh/ging.jpg" },
             { name: "Youpi", img: "hxh/youpi.jpg", nextForm: "Youpi (Rage)", cost: 2, tip: "⚡ AWAKENS → Youpi (Rage) [2 sacrifices]" },
             { name: "Youpi (Rage)", img: "hxh/youpi1.jpg" },
             { name: "Pitou", img: "hxh/pitou.jpg", nextForm: "Pitou (Doctor Blythe)", cost: 1, tip: "⚡ AWAKENS → Pitou (Doctor Blythe) [1 sacrifice]" },
@@ -439,6 +438,7 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
             { name: "Uvogin", img: "hxh/uvogin.jpg" },
         ],
         legendary: [
+            { name: "Ging", img: "hxh/ging.jpg" },
             { name: "Silva", img: "hxh/silva.jpg" },
             { name: "Hisoka", img: "hxh/hisoka.jpg" },
             { name: "Gon", img: "hxh/gon.jpg", nextForm: "Gon (Adult)", cost: 2, tip: "⚡ AWAKENS → Gon (Adult) [2 sacrifices]" },
@@ -447,9 +447,10 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
             { name: "Chrollo (Hatsu Unleashed)", img: "hxh/chrollo1.jpg" },
             { name: "Zeno", img: "hxh/zeno.jpg", nextForm: "Zeno (Dragon Dive)", cost: 2, tip: "⚡ AWAKENS → Zeno (Dragon Dive) [2 sacrifice]" },
             { name: "Zeno (Dragon Dive)", img: "hxh/zeno1.jpg" },
-            { name: "Alluka", img: "hxh/alluka.jpg" }
         ],
         ultra: [
+            { name: "Alluka", img: "hxh/alluka.jpg", nextForm: "Alluka (Nanika)", cost: 2, tip: "⚡ AWAKENS → Alluka (Nanika) [2 sacrifices]" },
+            { name: "Alluka (Nanika)", img: "hxh/alluka1.jpg" },
             { name: "Meruem", img: "hxh/meruem.jpg", nextForm: "Meruem (Post-Rose)", cost: 3, tip: "⚡ AWAKENS → Meruem (Post-Rose) [3 sacrifices]" },
             { name: "Meruem (Post-Rose)", img: "hxh/meruem.jpg" },
             { name: "Netero", img: "hxh/netero.jpg", nextForm: "Netero (100-Type Guanyin)", cost: 3, tip: "⚡ AWAKENS → Netero (100-Type Guanyin) [2 sacrifices]" },
@@ -779,7 +780,100 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
             { name: "Dragon",    img: "fireforce/Dragon.jpg",    tier: "ultra", nextForm: "Dragon (Final Form)", cost: 2, tip: "⚡ AWAKENS → Dragon (Final Form) [2 sacrifices]"   },
             { name: "Dragon (Final Form)", img: "fireforce/Dragon1.jpg", tier: "ultra" }
         ]
-    }
+    },
+    AttackOnTitan: {
+        ultra: [
+        { name: "Eren Yeager", img: "aot/eren.jpg", nextForm: "Eren Yeager (Attack Titan)", cost: 2, tip: "⚡ AWAKENS → Eren Yeager (Attack Titan) [2 sacrifices]" },
+        { name: "Eren Yeager (Attack Titan)", img: "aot/erenattack.jpg", nextForm: "Eren Yeager (Founding Titan)", cost: 3, tip: "⚡ AWAKENS → Eren Yeager (Founding Titan) [3 sacrifices]" },
+        { name: "Eren Yeager (Founding Titan)", img: "aot/erenfounding.jpg" },
+        { name: "Ymir Fritz", img: "aot/ymirfritz.jpg", nextForm: "Ymir Fritz (Founding Titan)", cost: 5, tip: "⚡ AWAKENS → Ymir Fritz (Founding Titan) [5 sacrifices]" },
+        { name: "Ymir Fritz (Founding Titan)", img: "aot/ymirfritzfounding.jpg" }
+    ],
+
+    legendary: [
+        { name: "Armin Arlert", img: "aot/armin.jpg", nextForm: "Armin Arlert (Colossal Titan)", cost: 4, tip: "⚡ AWAKENS → Armin Arlert (Colossal Titan) [4 sacrifices]" },
+        { name: "Armin Arlert (Colossal Titan)", img: "aot/armincolossal.jpg" },
+        { name: "Levi Ackerman", img: "aot/levi.jpg" },
+        { name: "Mikasa Ackerman", img: "aot/mikasa.jpg" },
+        { name: "Zeke Yeager", img: "aot/zeke.jpg", nextForm: "Zeke Yeager (Beast Titan)", cost: 3, tip: "⚡ AWAKENS → Zeke Yeager (Beast Titan) [3 sacrifices]" },
+        { name: "Zeke Yeager (Beast Titan)", img: "aot/zekebeast.jpg" },
+        { name: "Reiner Braun", img: "aot/reiner.jpg", nextForm: "Reiner Braun (Armored Titan)", cost: 3, tip: "⚡ AWAKENS → Reiner Braun (Armored Titan) [3 sacrifices]" },
+        { name: "Reiner Braun (Armored Titan)", img: "aot/reinerarmored.jpg" },
+        { name: "Annie Leonhart", img: "aot/annie.jpg", nextForm: "Annie Leonhart (Female Titan)", cost: 3, tip: "⚡ AWAKENS → Annie Leonhart (Female Titan) [3 sacrifices]" },
+        { name: "Annie Leonhart (Female Titan)", img: "aot/anniefemale.jpg" },
+        { name: "Bertholdt Hoover", img: "aot/bertholdt.jpg", nextForm: "Bertholdt Hoover (Colossal Titan)", cost: 4, tip: "⚡ AWAKENS → Bertholdt Hoover (Colossal Titan) [4 sacrifices]" },
+        { name: "Bertholdt Hoover (Colossal Titan)", img: "aot/bertholdtcolossal.jpg" },
+    ],
+
+    mythic: [
+        { name: "Frieda Reiss", img: "aot/frieda.jpg", nextForm: "Frieda Reiss (Titan)", cost: 3, tip: "⚡ AWAKENS → Frieda Reiss (Titan) [3 sacrifices]" },
+        { name: "Frieda Reiss (Titan)", img: "aot/friedatitan.jpg" },
+        { name: "Rod Reiss", img: "aot/rodreiss.jpg", nextForm: "Rod Reiss (Abnormal Titan)", cost: 2, tip: "⚡ AWAKENS → Rod Reiss (Abnormal Titan) [2 sacrifices]" },
+        { name: "Rod Reiss (Abnormal Titan)", img: "aot/rodreissabnormal.jpg" },
+        { name: "Pieck Finger", img: "aot/pieck.jpg", nextForm: "Pieck Finger (Cart Titan)", cost: 2, tip: "⚡ AWAKENS → Pieck Finger (Cart Titan) [2 sacrifices]" },
+        { name: "Pieck Finger (Cart Titan)", img: "aot/pieckcart.jpg" },
+        { name: "Porco Galliard", img: "aot/porco.jpg", nextForm: "Porco Galliard (Jaw Titan)", cost: 2, tip: "⚡ AWAKENS → Porco Galliard (Jaw Titan) [2 sacrifices]" },
+        { name: "Porco Galliard (Jaw Titan)", img: "aot/porcojaw.jpg" },
+        { name: "Lara Tybur", img: "aot/lara.jpg", nextForm: "Lara Tybur (War Hammer Titan)", cost: 3, tip: "⚡ AWAKENS → Lara Tybur (War Hammer Titan) [3 sacrifices]"},
+        { name: "Lara Tybur (War Hammer Titan)", img: "aot/larawarhammer.jpg" },
+        { name: "Falco Grice", img: "aot/falco.jpg", nextForm: "Falco Grice (Flying Jaw Titan)", cost: 3, tip: "⚡ AWAKENS → Falco Grice (Flying Jaw Titan) [3 sacrifices]" },
+        { name: "Falco Grice (Flying Jaw Titan)", img: "aot/falcoflying.jpg" },
+        { name: "Kenny Ackermann", img: "aot/kenny.jpg" },
+        { name: "Erwin Smith", img: "aot/erwin.jpg" },
+        { name: "Hange Zoë", img: "aot/hange.jpg" },
+        { name: "Ymir", img: "aot/ymir.jpg", nextForm: "Ymir (Jaw Titan)", cost: 2, tip: "⚡ AWAKENS → Ymir (Jaw Titan) [2 sacrifices]" },
+        { name: "Ymir (Jaw Titan)", img: "aot/ymirjaw.jpg" }
+    ],
+
+    epic: [
+        { name: "Dina Fritz", img: "aot/dina.jpg", nextForm: "Smiling Titan", cost: 1, tip: "⚡ AWAKENS → Smiling Titan [1 sacrifices]" },
+        { name: "Smiling Titan", img: "aot/dinatitan.jpg" },
+        { name: "Jean Kirstein", img: "aot/jean.jpg" },
+        { name: "Connie Springer", img: "aot/connie.jpg" },
+        { name: "Sasha Blouse", img: "aot/sasha.jpg" },
+        { name: "Marco Bott", img: "aot/marco.jpg" },
+        { name: "Marlowe Freudenberg", img: "aot/marlowe.jpg" },
+        { name: "Theo Magath", img: "aot/magath.jpg" },
+        { name: "Floch Forster", img: "aot/floch.jpg" },
+        { name: "Petra Ral", img: "aot/petra.jpg" },
+        { name: "Oluo Bozado", img: "aot/oluo.jpg" },
+        { name: "Eld Jinn", img: "aot/eld.jpg" },
+        { name: "Nanaba", img: "aot/nanaba.jpg" },
+        { name: "Mike Zacharias", img: "aot/mike.jpg" }
+    ],
+
+    rare: [
+        { name: "Gabi Braun", img: "aot/gabi.jpg" },
+        { name: "Gross", img: "aot/gross.jpg" },
+        { name: "Keith Shadis", img: "aot/keith.jpg" },
+        { name: "Dot Pixis", img: "aot/pixis.jpg" },
+        { name: "Nile Dok", img: "aot/nile.jpg" },
+        { name: "Willy Tybur", img: "aot/willy.jpg" },
+        { name: "Calvi", img: "aot/calvi.jpg" },
+        { name: "Onyankopon", img: "aot/onyankopon.jpg" },
+        { name: "Rico Brzenska", img: "aot/rico.jpg" },
+        { name: "Ian Dietrich", img: "aot/ian.jpg" },
+        { name: "Hannes", img: "aot/hannes.jpg" },
+        { name: "Thomas Wagner", img: "aot/thomas.jpg" },
+        { name: "Mina Carolina", img: "aot/mina.jpg" },
+        { name: "Hitch Dreyse", img: "aot/hitch.jpg" },
+    ],
+
+    common: [
+        { name: "Louise", img: "aot/louise.jpg" },
+        { name: "Connie's mother", img: "aot/connymother.jpg" },
+        { name: "Niccolo", img: "aot/niccolo.jpg" },
+        { name: "Grisha Yeager", img: "aot/grisha.jpg" },
+        { name: "Carla Yeager", img: "aot/carla.jpg" },
+        { name: "Faye Yeager", img: "aot/faye.jpg" },
+        { name: "Historia Reiss", img: "aot/historia.jpg" },
+        { name: "Uri Reiss", img: "aot/uri.jpg" },
+        { name: "Yelena", img: "aot/yelena.jpg" },
+        { name: "Kaya", img: "aot/kaya.jpg" },
+        { name: "Ramzi", img: "aot/ramzi.jpg" },
+        { name: "Samuel", img: "aot/samuel.jpg" },
+    ]
+}
 }
 
 // =============================================================
@@ -803,6 +897,52 @@ const ABILITIES = {
     // ═══════════════════════════════════════
     // JJK — ABILITY MODE ONLY (see JJK_ABILITIES below)
     // ═══════════════════════════════════════
+"Eren Yeager": { icon:"⚔️", name:"Attack Titan", desc:"POWER — Gains 25% increased attack damage.", type:"power", boost:0.25 },
+"Eren Yeager (Founding Titan)": { icon:"👑", name:"Founding Titan", desc:"DOMINATE — 50% increased attack damage and ignores enemy shields.", type:"power", boost:0.50, pierce:true },
+"Armin Arlert": { icon:"🧠", name:"Strategic Genius", desc:"TACTIC — 20% chance to completely avoid an incoming attack.", type:"dodge", chance:0.20 },
+"Armin Arlert (Colossal Titan)": { icon:"🔥", name:"Colossal Transformation", desc:"AOE — Devastating explosion damages the target and 1 adjacent enemy.", type:"aoe" },
+"Levi Ackerman": { icon:"⚔️", name:"Humanity's Strongest", desc:"CRITICAL — 35% chance to deal double damage.", type:"critical", chance:0.35 },
+"Mikasa Ackerman": { icon:"🗡️", name:"Ackerman Instinct", desc:"DODGE — 40% dodge chance. If she dodges, she immediately counterattacks.", type:"dodge", chance:0.40, counter:true },
+"Zeke Yeager": { icon:"🐒", name:"Beast Titan", desc:"RANGED — Throws a devastating projectile that can attack an enemy from range.", type:"ranged" },
+"Zeke Yeager (Beast Titan)": { icon:"🪨", name:"Rock Barrage", desc:"AOE — Throws rocks at the target and 2 adjacent enemies.", type:"aoe" },
+"Reiner Braun": { icon:"🛡️", name:"Armored Titan", desc:"SHIELD — Hardened armor blocks one incoming attack.", type:"shield" },
+"Reiner Braun (Armored Titan)": { icon:"🛡️", name:"Titan Armor", desc:"SHIELD — Blocks two incoming attacks before breaking.", type:"shield", hits:2 },
+"Annie Leonhart": { icon:"🥋", name:"Martial Arts", desc:"COUNTER — 30% chance to counter an incoming attack.", type:"counter", chance:0.30 },
+"Annie Leonhart (Female Titan)": { icon:"💎", name:"Titan Hardening", desc:"SHIELD — Blocks one attack. Her next attack deals 50% more damage.", type:"shield_power", boost:0.50 },
+"Bertholdt Hoover": { icon:"🔥", name:"Colossal Titan", desc:"AOE — Massive heat damages the target and 1 adjacent enemy.", type:"aoe" },
+"Bertholdt Hoover (Colossal Titan)": { icon:"☢️", name:"Nuclear Transformation", desc:"AOE — Massive explosion hits the target and 2 adjacent enemies.", type:"aoe", targets:3 },
+"Pieck Finger": { icon:"🐴", name:"Cart Titan", desc:"SPEED — Can attack twice before the opponent gets their next turn.", type:"double_attack" },
+"Pieck Finger (Cart Titan)": { icon:"💨", name:"Cart Titan Mobility", desc:"DODGE — 35% dodge chance and can attack twice.", type:"dodge_double", chance:0.35 },
+"Porco Galliard": { icon:"🦷", name:"Jaw Titan", desc:"CRITICAL — 30% chance to deal double damage with razor-sharp jaws.", type:"critical", chance:0.30 },
+"Porco Galliard (Jaw Titan)": { icon:"🦷", name:"Jaw Fury", desc:"ARMOR BREAK — Ignores enemy shields and deals 25% bonus damage.", type:"pierce", boost:0.25 },
+"Falco Grice": { icon:"🦅", name:"Jaw Titan", desc:"DODGE — 30% dodge chance due to his Titan's agility.", type:"dodge", chance:0.30 },
+"Falco Grice (Flying Jaw Titan)": { icon:"🪽", name:"Flying Titan", desc:"AIR STRIKE — Can bypass the front enemy and attack any target.", type:"ranged" },
+"Ymir": { icon:"🦷", name:"Jaw Titan", desc:"DODGE — 30% dodge chance due to her Titan's speed.", type:"dodge", chance:0.30 },
+"Ymir (Jaw Titan)": { icon:"🐺", name:"Savage Jaw", desc:"CRITICAL — 35% chance to deal double damage.", type:"critical", chance:0.35 },
+"Ymir Fritz": { icon:"👑", name:"Origin of the Titans", desc:"DOMINATE — Can ignore one enemy ability and gains 40% increased attack damage.", type:"power", boost:0.40, abilityImmunity:true },
+"Hange Zoë": { icon:"🔬", name:"Titan Research", desc:"TACTIC — 25% chance to discover an enemy weakness and deal double damage.", type:"critical", chance:0.25 },
+"Erwin Smith": { icon:"🫡", name:"Shinzou wo Sasageyo", desc:"COMMAND — Boosts the attack of all allied characters by 15%.", type:"team_boost", boost:0.15 },
+"Kenny Ackermann": { icon:"🔫", name:"Anti-Personnel Expert", desc:"RANGED — Attacks from range and has a 25% chance to deal double damage.", type:"ranged_critical", chance:0.25 },
+"Mike Zacharias": { icon:"👃", name:"Beastly Senses", desc:"DODGE — 30% dodge chance and can detect hidden attacks.", type:"dodge", chance:0.30 },
+"Jean Kirstein": { icon:"🗡️", name:"Tactical Instinct", desc:"COUNTER — 20% chance to counterattack after being hit.", type:"counter", chance:0.20 },
+"Connie Springer": { icon:"💨", name:"Agile Soldier", desc:"DODGE — 20% dodge chance.", type:"dodge", chance:0.20 },
+"Sasha Blouse": { icon:"🏹", name:"Perfect Shot", desc:"CRITICAL — 30% chance to deal double damage from range.", type:"critical", chance:0.30 },
+"Floch Forster": { icon:"🔥", name:"Yeagerist Resolve", desc:"BERSERK — When below 30% health, gains 40% increased attack damage.", type:"berserk", boost:0.40 },
+"Historia Reiss": { icon:"👑", name:"Royal Blood", desc:"SUPPORT — Restores 20% health to herself or an allied character.", type:"heal", amount:0.20 },
+"Frieda Reiss": { icon:"👑", name:"Founding Power", desc:"CONTROL — 25% chance to disable the enemy's ability for one turn.", type:"freeze", chance:0.25 },
+"Rod Reiss": { icon:"🧪", name:"Pure Titan", desc:"BERSERK — Gains 35% increased attack damage but cannot dodge.", type:"power", boost:0.35 },
+"Gabi Braun": { icon:"🎯", name:"Anti-Titan Rifle", desc:"RANGED — Long-range attack that ignores the enemy's normal attack range.", type:"ranged" },
+"Theo Magath": { icon:"💥", name:"Anti-Titan Artillery", desc:"ARMOR BREAK — Deals 25% bonus damage against Titan forms.", type:"pierce", boost:0.25 },
+"Petra Ral": { icon:"⚔️", name:"Elite Soldier", desc:"DODGE — 25% dodge chance.", type:"dodge", chance:0.25 },
+"Oluo Bozado": { icon:"🗡️", name:"Elite Blade", desc:"CRITICAL — 25% chance to deal double damage.", type:"critical", chance:0.25 },
+"Eld Jinn": { icon:"⚔️", name:"Squad Leader", desc:"TEAMWORK — Gains 15% increased attack when an allied soldier is adjacent.", type:"conditional_power", boost:0.15 },
+"Moblit Berner": { icon:"🛡️", name:"Protect Hange", desc:"GUARD — Can take an attack intended for an adjacent ally.", type:"guard" },
+"Nanaba": { icon:"⚔️", name:"Veteran Soldier", desc:"CRITICAL — 20% chance to deal double damage.", type:"critical", chance:0.20 },
+"Keith Shadis": { icon:"🫡", name:"Veteran Commander", desc:"COMMAND — Allied soldiers gain 10% increased attack.", type:"team_boost", boost:0.10 },
+"Dot Pixis": { icon:"🎖️", name:"Commander", desc:"STRATEGY — Reduces incoming damage to all allied characters by 10%.", type:"team_shield", reduction:0.10 },
+"Nile Dok": { icon:"⚔️", name:"Military Police", desc:"DEFENSE — 15% chance to block an incoming attack.", type:"block", chance:0.15 },
+"Niccolo": { icon:"🍳", name:"Master Chef", desc:"HEAL — Restores 15% health to an allied character.", type:"heal", amount:0.15 },
+"Onyankopon": { icon:"✈️", name:"Pilot", desc:"MOBILITY — Can reposition and attack an enemy from a different position.", type:"mobility" },
     
     // ——— Demon Slayer ———
     "Zenitsu":        { icon:"⚡", name:"Thunderclap Flash",  desc:"DODGE — 45% dodge. Attacks before opponent.", type:"dodge", chance:0.45 },
