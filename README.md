@@ -14,6 +14,7 @@ A browser-based multiplayer card conquest game featuring characters from 8 anime
 - My Hero Academia
 - Hunter x Hunter
 - Fire Force
+- Attack on Titan
 
 ## 🕹️ Game Modes
 - **Conquest** — Eliminate all opponents by destroying their units
