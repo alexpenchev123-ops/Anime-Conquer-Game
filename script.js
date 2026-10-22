@@ -429,6 +429,7 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
             { name: "Killua", img: "hxh/killua.jpg", nextForm: "Killua (Godspeed)", cost: 1, tip: "⚡ AWAKENS → Killua (Godspeed) [1 sacrifice]" },
             { name: "Killua (Godspeed)", img: "hxh/killua1.jpg" },
             { name: "Kite", img: "hxh/kite.jpg" },
+            { name: "Ging", img: "hxh/ging.jpg" },
             { name: "Youpi", img: "hxh/youpi.jpg", nextForm: "Youpi (Rage)", cost: 2, tip: "⚡ AWAKENS → Youpi (Rage) [2 sacrifices]" },
             { name: "Youpi (Rage)", img: "hxh/youpi1.jpg" },
             { name: "Pitou", img: "hxh/pitou.jpg", nextForm: "Pitou (Doctor Blythe)", cost: 1, tip: "⚡ AWAKENS → Pitou (Doctor Blythe) [1 sacrifice]" },
@@ -438,7 +439,6 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
             { name: "Uvogin", img: "hxh/uvogin.jpg" },
         ],
         legendary: [
-            { name: "Ging", img: "hxh/ging.jpg" },
             { name: "Silva", img: "hxh/silva.jpg" },
             { name: "Hisoka", img: "hxh/hisoka.jpg" },
             { name: "Gon", img: "hxh/gon.jpg", nextForm: "Gon (Adult)", cost: 2, tip: "⚡ AWAKENS → Gon (Adult) [2 sacrifices]" },
@@ -447,10 +447,9 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
             { name: "Chrollo (Hatsu Unleashed)", img: "hxh/chrollo1.jpg" },
             { name: "Zeno", img: "hxh/zeno.jpg", nextForm: "Zeno (Dragon Dive)", cost: 2, tip: "⚡ AWAKENS → Zeno (Dragon Dive) [2 sacrifice]" },
             { name: "Zeno (Dragon Dive)", img: "hxh/zeno1.jpg" },
+            { name: "Alluka", img: "hxh/alluka.jpg" }
         ],
         ultra: [
-            { name: "Alluka", img: "hxh/alluka.jpg", nextForm: "Alluka (Nanika)", cost: 2, tip: "⚡ AWAKENS → Alluka (Nanika) [2 sacrifices]" },
-            { name: "Alluka (Nanika)", img: "hxh/alluka1.jpg" },
             { name: "Meruem", img: "hxh/meruem.jpg", nextForm: "Meruem (Post-Rose)", cost: 3, tip: "⚡ AWAKENS → Meruem (Post-Rose) [3 sacrifices]" },
             { name: "Meruem (Post-Rose)", img: "hxh/meruem.jpg" },
             { name: "Netero", img: "hxh/netero.jpg", nextForm: "Netero (100-Type Guanyin)", cost: 3, tip: "⚡ AWAKENS → Netero (100-Type Guanyin) [2 sacrifices]" },
@@ -684,7 +683,7 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
         legendary: [
             { name: "Star & Stripe", img: "mha/starandstripe.jpg", tier: "legendary" },
             { name: "Deku (OFA)", img: "mha/deku.jpg", tier: "legendary" },
-            { name: "Bakugo", img: "mha/bakugo.jpg", tier: "lege" },
+            { name: "Bakugo", img: "mha/bakugo.jpg", tier: "legendary" },
             { name: "Endeavor", img: "mha/endeavor.jpg", tier: "legendary" },
             { name: "Shigaraki", img: "mha/shigaraki.jpg", tier: "legendary" },
             { name: "Gigantomachia", img: "mha/gigantomachia.jpg", tier: "legendary" },
@@ -818,58 +817,53 @@ ultra: [{name: "Yorichi", img: "ds/yorichi.jpg" }, { name: "Muzan", img: "ds/muz
         { name: "Lara Tybur (War Hammer Titan)", img: "aot/larawarhammer.jpg" },
         { name: "Falco Grice", img: "aot/falco.jpg", nextForm: "Falco Grice (Flying Jaw Titan)", cost: 3, tip: "⚡ AWAKENS → Falco Grice (Flying Jaw Titan) [3 sacrifices]" },
         { name: "Falco Grice (Flying Jaw Titan)", img: "aot/falcoflying.jpg" },
-        { name: "Kenny Ackermann", img: "aot/kenny.jpg" },
-        { name: "Erwin Smith", img: "aot/erwin.jpg" },
-        { name: "Hange Zoë", img: "aot/hange.jpg" },
         { name: "Ymir", img: "aot/ymir.jpg", nextForm: "Ymir (Jaw Titan)", cost: 2, tip: "⚡ AWAKENS → Ymir (Jaw Titan) [2 sacrifices]" },
         { name: "Ymir (Jaw Titan)", img: "aot/ymirjaw.jpg" }
     ],
 
     epic: [
+        { name: "Kenny Ackermann", img: "aot/kenny.jpg" },
+        { name: "Erwin Smith", img: "aot/erwin.jpg" },
+        { name: "Hange Zoë", img: "aot/hange.jpg" },
         { name: "Dina Fritz", img: "aot/dina.jpg", nextForm: "Smiling Titan", cost: 1, tip: "⚡ AWAKENS → Smiling Titan [1 sacrifices]" },
         { name: "Smiling Titan", img: "aot/dinatitan.jpg" },
         { name: "Jean Kirstein", img: "aot/jean.jpg" },
         { name: "Connie Springer", img: "aot/connie.jpg" },
         { name: "Sasha Blouse", img: "aot/sasha.jpg" },
         { name: "Marco Bott", img: "aot/marco.jpg" },
-        { name: "Marlowe Freudenberg", img: "aot/marlowe.jpg" },
         { name: "Theo Magath", img: "aot/magath.jpg" },
         { name: "Floch Forster", img: "aot/floch.jpg" },
         { name: "Petra Ral", img: "aot/petra.jpg" },
         { name: "Oluo Bozado", img: "aot/oluo.jpg" },
-        { name: "Eld Jinn", img: "aot/eld.jpg" },
         { name: "Nanaba", img: "aot/nanaba.jpg" },
-        { name: "Mike Zacharias", img: "aot/mike.jpg" }
+        { name: "Hannes", img: "aot/hannes.jpg" },
+        { name: "Mike Zacharias", img: "aot/mike.jpg" },
     ],
 
     rare: [
-        { name: "Gabi Braun", img: "aot/gabi.jpg" },
+        { name: "Marlowe", img:"aot/marlowe.jpg" },
+        { name: "Eld Jinn", img: "aot/eld.jpg" },
+        { name: "Gabi", img: "aot/gabi.jpg" },
         { name: "Gross", img: "aot/gross.jpg" },
-        { name: "Keith Shadis", img: "aot/keith.jpg" },
-        { name: "Dot Pixis", img: "aot/pixis.jpg" },
         { name: "Nile Dok", img: "aot/nile.jpg" },
-        { name: "Willy Tybur", img: "aot/willy.jpg" },
         { name: "Calvi", img: "aot/calvi.jpg" },
-        { name: "Onyankopon", img: "aot/onyankopon.jpg" },
         { name: "Rico Brzenska", img: "aot/rico.jpg" },
         { name: "Ian Dietrich", img: "aot/ian.jpg" },
-        { name: "Hannes", img: "aot/hannes.jpg" },
-        { name: "Thomas Wagner", img: "aot/thomas.jpg" },
+        { name: "Thomas", img: "aot/thomas.jpg" },
         { name: "Mina Carolina", img: "aot/mina.jpg" },
         { name: "Hitch Dreyse", img: "aot/hitch.jpg" },
+        { name: "Nifa", img: "aot/nifa.jpg" },
+        { name: "Grisha Yeager", img: "aot/grisha.jpg" },
+        { name: "Historia Reiss", img: "aot/historia.jpg" },
+        { name: "Yelena", img: "aot/yelena.jpg" },
     ],
 
     common: [
         { name: "Louise", img: "aot/louise.jpg" },
         { name: "Connie's mother", img: "aot/connymother.jpg" },
         { name: "Niccolo", img: "aot/niccolo.jpg" },
-        { name: "Grisha Yeager", img: "aot/grisha.jpg" },
-        { name: "Carla Yeager", img: "aot/carla.jpg" },
-        { name: "Faye Yeager", img: "aot/faye.jpg" },
-        { name: "Historia Reiss", img: "aot/historia.jpg" },
-        { name: "Uri Reiss", img: "aot/uri.jpg" },
-        { name: "Yelena", img: "aot/yelena.jpg" },
-        { name: "Kaya", img: "aot/kaya.jpg" },
+        { name: "Carla", img: "aot/carla.jpg" },
+        { name: "Faye", img: "aot/faye.jpg" },
         { name: "Ramzi", img: "aot/ramzi.jpg" },
         { name: "Samuel", img: "aot/samuel.jpg" },
     ]
@@ -1331,6 +1325,9 @@ let game = {
     shieldedUnits: {},
     reviveTracked: {},
     turnCount: 0,
+    // Host-authoritative wall-clock deadline for the current turn.
+    // This keeps every client on the same timer even when a tab is backgrounded.
+    turnDeadlineAt: null,
     mySeatIndex: 0,
     votingMode: false,
     showdownTurnsLeft: null,
@@ -1364,6 +1361,16 @@ let onlineGuestNames = {};  // peerId -> chosen player name
 let onlinePeerSeats = {};   // peerId -> players[] seat after the match starts
 // Device-local online identity. NEVER synchronized inside gameState.
 let localOnlineSeat = null;
+let _leaveSignalSent = false;
+
+function sendOnlineLeaveSignal() {
+    if (_leaveSignalSent || isHost || !conn || !conn.open) return;
+    _leaveSignalSent = true;
+    try { conn.send({ type: 'PLAYER_LEAVE' }); } catch (e) {}
+}
+
+window.addEventListener('pagehide', sendOnlineLeaveSignal);
+window.addEventListener('beforeunload', sendOnlineLeaveSignal);
 
 function onlineConnected() {
     return isHost ? onlineConnections.some(c => c && c.open) : !!(conn && conn.open);
@@ -1384,6 +1391,7 @@ function isMyTurn() {
 }
 
 function createOnlineGame(onlineMode) {
+    _leaveSignalSent = false;
     isHost = true;
     localOnlineSeat = null;
     game.votingMode = (onlineMode === 'voting');
@@ -1440,6 +1448,7 @@ function createOnlineGame(onlineMode) {
 }
 
 function joinOnlineGame() {
+    _leaveSignalSent = false;
     localOnlineSeat = null;
     const code = document.getElementById('join-code')?.value.trim().toUpperCase();
     if (!code) { alert('Enter a room code first.'); return; }
@@ -1519,6 +1528,8 @@ function handleIncomingData(data, sourceConn = null) {
         document.getElementById('game-screen').classList.add('active');
         selectedVerse = data.verse;
         render();
+        // The host already supplied the absolute turn deadline.
+        startTurnTimer();
     }
     if (data.type === 'MOVE') {
         // Host-authoritative turn ownership: a guest may update state only during its own seat's turn.
@@ -1554,6 +1565,12 @@ function handleIncomingData(data, sourceConn = null) {
             render();
         }
         if (turnChanged) startTurnTimer();
+    }
+    if (data.type === 'PLAYER_LEAVE') {
+        // A guest explicitly closed/navigated away. Remove them immediately
+        // instead of waiting for PeerJS' connection timeout.
+        if (isHost && sourceConn) handleOnlinePlayerDisconnect(sourceConn);
+        return;
     }
     if (data.type === 'GUEST_NAME') {
         if (isHost && sourceConn) onlineGuestNames[sourceConn.peer] = data.name;
@@ -1799,7 +1816,7 @@ function showSetup(mode) {
         };
     }
     generateNameInputs();
-    updateVersePreview(document.getElementById('verse-select').value);
+    ensureVerseSelectorHook();
 }
 
 // ─── Pass-device screen for local mode ───────────────────────
@@ -1845,7 +1862,48 @@ const VERSE_PREVIEW = {
     MHA:         { img: 'verses/mha.jpg',         label: 'My Hero Academia' },
     HxH:         { img: 'verses/hxh.jpg',         label: 'Hunter x Hunter' },
     FireForce:   { img: 'verses/fireforce.jpg',   label: 'Fire Force' },
+    AttackOnTitan:{ img: 'verses/aot.jpg',          fallback: 'aot/eren.jpg', label: 'Attack on Titan' },
 };
+
+function ensureAOTThemeStyles() {
+    if (document.getElementById('aot-theme-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'aot-theme-styles';
+    style.textContent = `
+        body.aot-theme {
+            background:
+                radial-gradient(circle at 50% 0%, rgba(143,165,138,.16), transparent 42%),
+                linear-gradient(135deg,#111811 0%,#080b08 52%,#160b0b 100%) !important;
+        }
+        body.aot-theme #setup,
+        body.aot-theme .setup-panel,
+        body.aot-theme .setup-card {
+            border-color: rgba(143,165,138,.55) !important;
+            box-shadow: 0 0 24px rgba(143,165,138,.12), inset 0 0 35px rgba(0,0,0,.25) !important;
+        }
+        body.aot-theme .glow-button {
+            border-color:#8fa58a !important;
+            box-shadow:0 0 10px rgba(143,165,138,.22) !important;
+        }
+        body.aot-theme .glow-button:hover {
+            box-shadow:0 0 18px rgba(143,165,138,.45) !important;
+        }
+        body.aot-theme .awaken-btn {
+            border-color:#c62828 !important;
+            box-shadow:0 0 12px rgba(198,40,40,.28) !important;
+        }
+        body.aot-theme .awaken-btn:hover {
+            box-shadow:0 0 20px rgba(198,40,40,.5) !important;
+        }
+        body.aot-theme #verse-preview-label {
+            color:#d7e2d4 !important;
+            text-shadow:0 0 10px rgba(143,165,138,.35);
+            letter-spacing:2px;
+            text-transform:uppercase;
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 function updateVersePreview(verse) {
     const data = VERSE_PREVIEW[verse];
@@ -1853,13 +1911,47 @@ function updateVersePreview(verse) {
     const img = document.getElementById('verse-preview-img');
     const label = document.getElementById('verse-preview-label');
     if (!img || !label) return;
+
+    // Give each verse its own visual theme. AOT gets the Scout Regiment look.
+    ensureAOTThemeStyles();
+    document.body.classList.toggle('aot-theme', verse === 'AttackOnTitan');
+
     img.style.opacity = '0';
+    img.onerror = () => {
+        // If the dedicated verse artwork is missing, use an existing AOT image
+        // instead of leaving the preview blank.
+        if (data.fallback && img.dataset.aotFallback !== '1') {
+            img.dataset.aotFallback = '1';
+            img.src = data.fallback;
+        } else {
+            img.style.opacity = '0.25';
+        }
+    };
+    img.onload = () => {
+        img.style.opacity = '1';
+        img.dataset.aotFallback = '';
+    };
+
     setTimeout(() => {
         img.src = data.img;
-        img.onload = () => { img.style.opacity = '1'; };
-        img.onerror = () => { img.style.opacity = '0.2'; };
         label.innerText = data.label;
     }, 150);
+}
+
+function ensureVerseSelectorHook() {
+    const select = document.getElementById('verse-select');
+    if (!select) return;
+    if (!select.querySelector('option[value="AttackOnTitan"]')) {
+        const option = document.createElement('option');
+        option.value = 'AttackOnTitan';
+        option.textContent = 'Attack on Titan';
+        select.appendChild(option);
+    }
+    if (select.dataset.previewHooked !== '1') {
+        select.addEventListener('change', () => updateVersePreview(select.value));
+        select.dataset.previewHooked = '1';
+    }
+    updateVersePreview(select.value);
 }
 
 function generateNameInputs() {
@@ -1910,6 +2002,8 @@ function initGame() {
 
     // 1. Get Setup Data
     selectedVerse = document.getElementById('verse-select').value;
+    ensureAOTThemeStyles();
+    document.body.classList.toggle('aot-theme', selectedVerse === 'AttackOnTitan');
     game.mode = document.getElementById('game-mode-select')?.value || 'conquest';
     game.abilityMode = (game.mode === 'ability');
     if (game.abilityMode) game.mode = 'conquest';
@@ -2014,6 +2108,11 @@ function initGame() {
                     tier = roll < 0.08 ? 'mythic' : (roll < 0.5 ? 'epic' : 'rare');
                 } else if (selectedVerse === 'JJK') {
                     tier = roll < 0.4 ? 'epic' : 'rare';
+                } else if (selectedVerse === 'AttackOnTitan') {
+                    // AOT starting hands must NEVER randomly receive Legendary cards.
+                    // Legendary AOT characters are reserved for the board's central
+                    // Legendary tiles (or explicit Legendary trades).
+                    tier = roll < 0.15 ? 'mythic' : (roll < 0.65 ? 'epic' : 'rare');
                 } else {
                     // Naruto, MHA, OnePiece, Bleach
                     tier = roll < 0.08 ? 'mythic' : (roll < 0.3 ? 'epic' : (roll < 0.7 ? 'rare' : 'common'));
@@ -2026,9 +2125,14 @@ function initGame() {
 
     // 4. Generate Board
     const dsLegendarySpots = [];
-    if (selectedVerse === 'DemonSlayer' || selectedVerse === 'MHA' || selectedVerse === 'HxH' || selectedVerse === 'FireForce') {
+    const aotLegendarySpots = [];
+    if (selectedVerse === 'DemonSlayer' || selectedVerse === 'MHA' || selectedVerse === 'HxH' || selectedVerse === 'FireForce' || selectedVerse === 'AttackOnTitan') {
         const center = [14, 15, 20, 21].sort(() => Math.random() - 0.5);
-        dsLegendarySpots.push(center[0], center[1]);
+        if (selectedVerse === 'AttackOnTitan') {
+            aotLegendarySpots.push(center[0], center[1]);
+        } else {
+            dsLegendarySpots.push(center[0], center[1]);
+        }
     }
 
     for (let i = 0; i < 36; i++) {
@@ -2042,7 +2146,14 @@ function initGame() {
             const dist = Math.min(r, 5 - r, c, 5 - c);
             let tier;
 
-            if (selectedVerse === 'DemonSlayer' || selectedVerse === 'MHA' || selectedVerse === 'HxH' || selectedVerse === 'FireForce') {
+            if (selectedVerse === 'AttackOnTitan') {
+                // AOT has the same four-tile middle structure as Demon Slayer/MHA/etc.:
+                // exactly 2 Legendary + 2 Mythic, randomized among the four centre tiles.
+                if (aotLegendarySpots.includes(i))      tier = 'legendary';
+                else if ([14,15,20,21].includes(i))     tier = 'mythic';
+                else if (dist === 1)                    tier = Math.random() < 0.5 ? 'epic' : 'rare';
+                else                                    tier = Math.random() < 0.45 ? 'rare' : 'common';
+            } else if (selectedVerse === 'DemonSlayer' || selectedVerse === 'MHA' || selectedVerse === 'HxH' || selectedVerse === 'FireForce') {
                 if (dsLegendarySpots.includes(i))  tier = 'legendary';
                 else if ([14,15,20,21].includes(i)) tier = 'mythic';
                 else if (dist === 1)               tier = Math.random() < 0.5 ? 'epic' : 'rare';
@@ -2082,6 +2193,7 @@ function initGame() {
     // 5. Start Game
     game.currentTurn = 0;
     game.ap = 3;
+    game.turnDeadlineAt = Date.now() + 60000;
 
     // Online: sync to guest FIRST (before showing game screen on host)
     if (isHost && onlineConnected()) {
@@ -2581,7 +2693,7 @@ function handleAwaken() {
 
     addLog(`${game.players[game.currentTurn].name} awakened to <b>${targetUnit.name}</b>!`);
     playEffect('awaken');
-    const flavorText = selectedVerse === 'OnePiece' ? 'AWAKENING!' : selectedVerse === 'Bleach' ? 'BANKAI!' : selectedVerse === 'HxH' ? 'NEN UNLEASHED!' : 'SHINRA TENSEI!';
+    const flavorText = selectedVerse === 'OnePiece' ? 'AWAKENING!' : selectedVerse === 'Bleach' ? 'BANKAI!' : selectedVerse === 'HxH' ? 'NEN UNLEASHED!' : selectedVerse === 'AttackOnTitan' ? 'TITAN TRANSFORMATION!' : 'AWAKENING!';
     setTimeout(() => alert(`${flavorText} ${targetUnit.name} has awakened!`), 400);
 
     // Clean up state
@@ -2695,6 +2807,7 @@ const VERSE_BATTLE_THEME = {
     MHA:         ['#4dff88','#4d79ff','PLUS ULTRA!',  'radial-gradient(ellipse at center,#001a0a 0%,#050505 70%)'],
     HxH:         ['#ffe066','#4dffee','NEN UNLEASH!', 'radial-gradient(ellipse at center,#1a1500 0%,#050505 70%)'],
     FireForce:   ['#ff6600','#ff2200','ADOLLA BURST!','radial-gradient(ellipse at center,#1a0800 0%,#050505 70%)'],
+    AttackOnTitan:['#8fa58a','#c62828','TITAN TRANSFORMATION!','radial-gradient(ellipse at center,#172016 0%,#050505 72%)'],
 };
 function getBattleTheme() { return VERSE_BATTLE_THEME[selectedVerse] || ['#4d79ff','#ffffff','CLASH!','#050505']; }
 
@@ -2917,6 +3030,37 @@ function openCinematicBattle(allies, defAllies, countLabel) {
             @keyframes spark-fade     { to{opacity:0;width:0} }
             @keyframes battle-shake   { 0%,100%{transform:translate(0,0)} 15%{transform:translate(-6px,4px)} 30%{transform:translate(6px,-4px)} 45%{transform:translate(-4px,6px)} 60%{transform:translate(4px,-2px)} 75%{transform:translate(-2px,4px)} }
             .battle-shake { animation:battle-shake 0.5s ease-out !important; }
+            /* Attack on Titan — Survey Corps / Walls visual identity */
+            body.aot-theme { background:
+                radial-gradient(circle at 50% 0%, rgba(143,165,138,.16), transparent 42%),
+                linear-gradient(135deg, #111811 0%, #080b08 52%, #160b0b 100%) !important;
+            }
+            body.aot-theme #setup,
+            body.aot-theme .setup-panel,
+            body.aot-theme .setup-card {
+                border-color: rgba(143,165,138,.55) !important;
+                box-shadow: 0 0 24px rgba(143,165,138,.12), inset 0 0 35px rgba(0,0,0,.25) !important;
+            }
+            body.aot-theme .glow-button {
+                border-color: #8fa58a !important;
+                box-shadow: 0 0 10px rgba(143,165,138,.22) !important;
+            }
+            body.aot-theme .glow-button:hover {
+                box-shadow: 0 0 18px rgba(143,165,138,.45) !important;
+            }
+            body.aot-theme .awaken-btn {
+                border-color: #c62828 !important;
+                box-shadow: 0 0 12px rgba(198,40,40,.28) !important;
+            }
+            body.aot-theme .awaken-btn:hover {
+                box-shadow: 0 0 20px rgba(198,40,40,.5) !important;
+            }
+            body.aot-theme #verse-preview-label {
+                color: #d7e2d4 !important;
+                text-shadow: 0 0 10px rgba(143,165,138,.35);
+                letter-spacing: 2px;
+                text-transform: uppercase;
+            }
             .cin-arena { position:relative;width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;padding:16px 8px 8px; }
             .cin-bg-glow { position:absolute;inset:0;pointer-events:none;z-index:0; }
             .cin-combatants { display:grid;grid-template-columns:minmax(0,1fr) 76px minmax(0,1fr);align-items:center;justify-items:center;gap:12px;width:100%;max-width:720px;position:relative;z-index:1;overflow:visible; }
@@ -4152,7 +4296,7 @@ function updateSpecialUI() {
     const p = game.players[game.currentTurn];
 
     // --- AWAKEN FLOW ---
-    if (selectedVerse === 'Naruto' || selectedVerse === 'MHA' || selectedVerse === 'OnePiece' || selectedVerse === 'Bleach' || selectedVerse === 'HxH') {
+    if (selectedVerse === 'Naruto' || selectedVerse === 'MHA' || selectedVerse === 'OnePiece' || selectedVerse === 'Bleach' || selectedVerse === 'HxH' || selectedVerse === 'AttackOnTitan') {
         if (game.awakenTarget !== null) {
             // Target is locked in — show sacrifice count + confirm/cancel buttons
             const { source, idx } = game.awakenTarget;
@@ -4168,7 +4312,7 @@ function updateSpecialUI() {
             const confirmBtn = document.createElement('button');
             confirmBtn.className = "glow-button awaken-btn";
             confirmBtn.style.display = "block";
-            const confirmLabel = selectedVerse === 'Bleach' ? '✓ CONFIRM BANKAI' : selectedVerse === 'HxH' ? '✓ CONFIRM NEN UNLEASH' : '✓ CONFIRM AWAKEN';
+            const confirmLabel = selectedVerse === 'Bleach' ? '✓ CONFIRM BANKAI' : selectedVerse === 'HxH' ? '✓ CONFIRM NEN UNLEASH' : selectedVerse === 'AttackOnTitan' ? '✓ CONFIRM TRANSFORMATION' : '✓ CONFIRM AWAKEN';
             confirmBtn.innerText = confirmLabel;
             confirmBtn.disabled = (sacrificeCount !== required);
             confirmBtn.onclick = () => handleAwaken();
@@ -4195,7 +4339,7 @@ function updateSpecialUI() {
         if (selectedUnit && selectedUnit.nextForm) {
             const btn = document.createElement('button');
             btn.className = "glow-button awaken-btn";
-            const actionWord = selectedVerse === 'Bleach' ? 'BANKAI' : selectedVerse === 'HxH' ? 'NEN UNLEASH' : 'AWAKEN';
+            const actionWord = selectedVerse === 'Bleach' ? 'BANKAI' : selectedVerse === 'HxH' ? 'NEN UNLEASH' : selectedVerse === 'AttackOnTitan' ? 'TRANSFORM' : 'AWAKEN';
             btn.innerText = `${actionWord}: ${selectedUnit.name.split(' ')[0]}`;
             btn.onclick = () => {
                 // Lock the awaken target so sacrifice clicks don't clobber the selection
@@ -4517,31 +4661,46 @@ function showApToast(msg) {
 }
 
 // ─── 60-second turn timer ─────────────────────────────────────
+// The host creates an absolute deadline. Every client derives the remaining
+// seconds from that timestamp, so Alt+Tab/background throttling cannot pause
+// or desynchronise the displayed timer.
 let _turnTimerInterval = null;
 let _turnTimerSeconds = 60;
 
 function startTurnTimer() {
-    clearTurnTimer();
-    _turnTimerSeconds = 60;
-    _renderTimer();
-    _turnTimerInterval = setInterval(() => {
-        _turnTimerSeconds--;
+    clearTurnTimer(false);
+
+    if (!Number.isFinite(game.turnDeadlineAt)) {
+        game.turnDeadlineAt = Date.now() + 60000;
+    }
+
+    const tick = () => {
+        const remainingMs = game.turnDeadlineAt - Date.now();
+        _turnTimerSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
         _renderTimer();
-        if (_turnTimerSeconds <= 0) {
+
+        if (remainingMs <= 0) {
             clearTurnTimer();
-            // Only the current player (or host in online) auto-ends
-            if (!onlineConnected() || isMyTurn()) {
-                game.ap = 1; // endAction will deduct 1, hitting 0
+            // In online games the host is authoritative and must advance the
+            // turn even when the current player is a guest.
+            if (!onlineConnected() || isHost) {
+                game.ap = 1;
                 endAction(1);
             }
         }
-    }, 1000);
+    };
+
+    tick();
+    _turnTimerInterval = setInterval(tick, 250);
 }
 
-function clearTurnTimer() {
-    if (_turnTimerInterval) { clearInterval(_turnTimerInterval); _turnTimerInterval = null; }
+function clearTurnTimer(removeElement = true) {
+    if (_turnTimerInterval) {
+        clearInterval(_turnTimerInterval);
+        _turnTimerInterval = null;
+    }
     const el = document.getElementById('turn-timer');
-    if (el) el.remove();
+    if (removeElement && el) el.remove();
 }
 
 function _renderTimer() {
@@ -4557,6 +4716,16 @@ function _renderTimer() {
     el.innerText = `⏱ ${s}s`;
     el.style.color = s <= 10 ? '#ff4d4d' : s <= 20 ? '#ffaa00' : '#555';
 }
+
+// Repaint immediately when a background tab becomes visible again. The
+// remaining time still comes from the shared absolute deadline.
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && game?.turnDeadlineAt) {
+        const remainingMs = game.turnDeadlineAt - Date.now();
+        _turnTimerSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+        _renderTimer();
+    }
+});
 
 function endAction(apCost = 1) {
     game.ap -= apCost;
@@ -4575,6 +4744,7 @@ function endAction(apCost = 1) {
             }
             game.currentTurn = nextTurn;
             game.ap = 3;
+            game.turnDeadlineAt = Date.now() + 60000;
             game.awakenTarget = null;
             if (game.abilityMode) tickFrozen();
 
